@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>生产记录 - 车间产线记录系统</title>
+  <link rel="stylesheet" href="/frontend/css/variables.css">
+  <link rel="stylesheet" href="/frontend/css/mobile.css">
+</head>
+<body data-theme="light">
+
+  <div class="header">
+    <a href="#" id="backBtn" style="position:absolute;left:16px;font-size:20px;color:var(--text);text-decoration:none;">&#8249;</a>
+    <h1 class="header-title">生产记录</h1>
+  </div>
+
+  <div class="header-machine" id="machineInfo" style="display:none;">
+    <span class="machine-code" id="machineCode"></span>
+    <span class="machine-name" id="machineName"></span>
+  </div>
+
+  <div class="content safe-bottom">
+    <form id="recordForm" autocomplete="off">
+
+      <div class="form-group">
+        <label class="form-label">操作人员 <span class="required">*</span></label>
+        <input type="text" class="form-input" id="operator_name" name="operator_name" placeholder="姓名" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">工号</label>
+        <input type="text" class="form-input" id="operator_id" name="operator_id" placeholder="工号（选填）">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">产品名称 <span class="required">*</span></label>
+        <input type="text" class="form-input" id="product_name" name="product_name" placeholder="产品名称" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">批次号</label>
+        <input type="text" class="form-input" id="product_batch" name="product_batch" placeholder="批次号（选填）">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">计划数量</label>
+          <input type="number" class="form-input" id="plan_quantity" name="plan_quantity" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">实际数量 <span class="required">*</span></label>
+          <input type="number" class="form-input" id="actual_quantity" name="actual_quantity" placeholder="0" min="0" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">不良品数量</label>
+        <input type="number" class="form-input" id="defect_quantity" name="defect_quantity" placeholder="0" min="0">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">开始时间</label>
+          <input type="datetime-local" class="form-input" id="start_time" name="start_time">
+        </div>
+        <div class="form-group">
+          <label class="form-label">结束时间</label>
+          <input type="datetime-local" class="form-input" id="end_time" name="end_time">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <textarea class="form-textarea" id="remark" name="remark" placeholder="补充说明（选填）" rows="3"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submitBtn">提交生产记录</button>
+
+    </form>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    document.getElementById('backBtn').href =
+      '/frontend/mobile/?machine_id=' +
+      new URLSearchParams(window.location.search).get('machine_id');
+  </script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/mobile-production.js"></script>
+</body>
+</html>

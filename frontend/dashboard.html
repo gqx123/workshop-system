@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>车间管理系统</title>
+  <link rel="stylesheet" href="/frontend/css/variables.css">
+  <link rel="stylesheet" href="/frontend/css/dashboard.css">
+  <style>
+    /* 侧边栏徽章 */
+    .nav-badge {
+      margin-left: auto;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'DM Mono', monospace;
+      line-height: 18px;
+      text-align: center;
+      color: #fff;
+      background: var(--red);
+      border-radius: 9px;
+      display: none;
+    }
+    .nav-badge.visible {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+<!-- ========== 通用编辑弹窗 ========== -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="editModalTitle">编辑</span>
+        <button class="modal-close" id="editModalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="editModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="editCancelBtn">取消</button>
+        <button class="btn btn-primary" id="editConfirmBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 删除确认弹窗 ========== -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <span class="modal-title">确认删除</span>
+        <button class="modal-close" id="deleteModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteModalText" style="font-size:14px;color:var(--text-muted);">确定要删除这条记录吗？此操作不可撤销。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="deleteCancelBtn">取消</button>
+        <button class="btn btn-danger" id="deleteConfirmBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
+  <div class="layout">
+
+    <!-- ========== 侧边栏 ========== -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">车间管理系统</div>
+        <div class="logo-sub">Workshop MES</div>
+      </div>
+
+      <div class="sidebar-nav">
+        <button class="nav-item active" data-panel="overview">
+          <span class="nav-icon">&#9673;</span>
+          总览
+        </button>
+        <button class="nav-item" data-panel="production">
+          <span class="nav-icon">&#9881;</span>
+          生产记录
+        </button>
+        <button class="nav-item" data-panel="maintenance">
+          <span class="nav-icon">&#9878;</span>
+          保养记录
+        </button>
+        <button class="nav-item" data-panel="faults">
+          <span class="nav-icon">&#9888;</span>
+          故障记录
+          <span class="nav-badge" id="faultBadge">0</span>
+        </button>
+        <button class="nav-item" data-panel="machines">
+          <span class="nav-icon">&#9638;</span>
+          机床管理
+        </button>
+      </div>
+    </nav>
+
+    <!-- ========== 主内容 ========== -->
+    <main class="main">
+
+      <!-- 总览 -->
+      <div class="panel active" id="panel-overview">
+        <div class="main-header">
+          <h1 class="page-title">总览</h1>
+        </div>
+        <div class="main-body">
+          <!-- 统计卡片 -->
+          <div class="stats-grid" id="overviewStats"></div>
+          <!-- 机床今日产量 -->
+          <h3 style="margin-bottom:14px;font-size:15px;font-weight:600;">今日各机床产量</h3>
+          <div class="machine-grid" id="overviewMachines"></div>
+        </div>
+      </div>
+
+      <!-- 生产记录 -->
+      <div class="panel" id="panel-production">
+        <div class="main-header">
+          <h1 class="page-title">生产记录</h1>
+        </div>
+        <div class="main-body">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <select class="form-select" id="prodFilterMachine">
+                <option value="">全部机床</option>
+              </select>
+              <input type="date" class="form-input" id="prodFilterFrom" placeholder="起始日期">
+              <input type="date" class="form-input" id="prodFilterTo" placeholder="截止日期">
+              <button class="btn btn-primary" id="prodFilterBtn">查询</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>机床</th>
+                  <th>产品</th>
+                  <th>批次</th>
+                  <th>计划</th>
+                  <th>实际</th>
+                  <th>不良</th>
+                  <th>操作人</th>
+                  <th>备注</th>
+                </tr>
+              </thead>
+              <tbody id="prodTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="prodLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <span>加载中...</span>
+          </div>
+          <div class="empty-state" id="prodEmpty" style="display:none;">
+            <div class="empty-icon">&#128203;</div>
+            <div class="empty-text">暂无生产记录</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 保养记录 -->
+      <div class="panel" id="panel-maintenance">
+        <div class="main-header">
+          <h1 class="page-title">保养记录</h1>
+        </div>
+        <div class="main-body">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <select class="form-select" id="maintFilterMachine">
+                <option value="">全部机床</option>
+              </select>
+              <button class="btn btn-primary" id="maintFilterBtn">查询</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>机床</th>
+                  <th>类型</th>
+                  <th>内容</th>
+                  <th>更换部件</th>
+                  <th>耗时</th>
+                  <th>操作人</th>
+                  <th>下次保养</th>
+                </tr>
+              </thead>
+              <tbody id="maintTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="maintLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <span>加载中...</span>
+          </div>
+          <div class="empty-state" id="maintEmpty" style="display:none;">
+            <div class="empty-icon">&#128295;</div>
+            <div class="empty-text">暂无保养记录</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 故障记录 -->
+      <div class="panel" id="panel-faults">
+        <div class="main-header">
+          <h1 class="page-title">故障记录</h1>
+        </div>
+        <div class="main-body">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <select class="form-select" id="faultFilterStatus">
+                <option value="">全部状态</option>
+                <option value="待处理">待处理</option>
+                <option value="已解决">已解决</option>
+              </select>
+              <button class="btn btn-primary" id="faultFilterBtn">查询</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>机床</th>
+                  <th>类型</th>
+                  <th>严重程度</th>
+                  <th>描述</th>
+                  <th>状态</th>
+                  <th>上报人</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="faultTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="faultLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <span>加载中...</span>
+          </div>
+          <div class="empty-state" id="faultEmpty" style="display:none;">
+            <div class="empty-icon">&#9888;</div>
+            <div class="empty-text">暂无故障记录</div>
+          </div>
+        </div>
+      </div>
+
+            <!-- 机床管理 -->
+      <div class="panel" id="panel-machines">
+        <div class="main-header">
+          <h1 class="page-title">机床管理</h1>
+        </div>
+        <div class="main-body">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <button class="btn btn-primary" onclick="DashMachines.openCreateModal()">+ 新增机床</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>编号</th>
+                  <th>名称</th>
+                  <th>类型</th>
+                  <th>位置</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="machineTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="machineLoading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <span>加载中...</span>
+          </div>
+          <div class="empty-state" id="machineEmpty" style="display:none;">
+            <div class="empty-icon">&#9638;</div>
+            <div class="empty-text">暂无机床数据，点击上方按钮新增</div>
+          </div>
+        </div>
+      </div>
+
+
+    </main>
+  </div>
+
+  <!-- ========== 故障解决弹窗 ========== -->
+  <div class="modal-overlay" id="resolveModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">解决故障</span>
+        <button class="modal-close" id="resolveModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">解决方案 <span style="color:var(--red)">*</span></label>
+          <textarea class="form-textarea" id="resolveInput" rows="4" placeholder="描述故障的处理方式和结果"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="resolveCancelBtn">取消</button>
+        <button class="btn btn-primary" id="resolveConfirmBtn">确认解决</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Toast 容器 ========== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ========== 脚本 ========== -->
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/dash-overview.js"></script>
+  <script src="/frontend/js/dash-production.js"></script>
+  <script src="/frontend/js/dash-maintenance.js"></script>
+  <script src="/frontend/js/dash-faults.js"></script>
+  <script src="/frontend/js/dash-machines.js"></script>
+
+  <script>
+    /**
+     * 仪表盘主控制器
+     * 负责面板切换、模块初始化、自动刷新
+     */
+    ;(function () {
+      'use strict';
+
+      // ---------- 模块注册 ----------
+      var modules = {
+        overview:    DashOverview,
+        production:  DashProduction,
+        maintenance: DashMaintenance,
+        faults:      DashFaults,
+        machines:    DashMachines,
+      };
+
+      // ---------- 初始化所有模块 ----------
+      Object.keys(modules).forEach(function (name) {
+        if (modules[name] && typeof modules[name].init === 'function') {
+          modules[name].init();
+        }
+      });
+
+      // ---------- 侧边栏切换 ----------
+      var navItems = document.querySelectorAll('.nav-item');
+      var panels = document.querySelectorAll('.panel');
+
+      navItems.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var target = btn.getAttribute('data-panel');
+          switchPanel(target);
+        });
+      });
+
+      function switchPanel(name) {
+        // 导航高亮
+        navItems.forEach(function (b) { b.classList.remove('active'); });
+        document.querySelector('.nav-item[data-panel="' + name + '"]').classList.add('active');
+
+        // 面板显示
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        document.getElementById('panel-' + name).classList.add('active');
+
+        // 切换时刷新
+        if (modules[name] && typeof modules[name].refresh === 'function') {
+          modules[name].refresh();
+        }
+      }
+
+      // ---------- 总览面板自动刷新 ----------
+      setInterval(function () {
+        var overviewPanel = document.getElementById('panel-overview');
+        if (overviewPanel.classList.contains('active')) {
+          modules.overview.refresh();
+        }
+      }, 30000);
+
+      // ---------- Toast 全局方法 ----------
+      window.showToast = function (message, type) {
+        type = type || 'success';
+        var container = document.getElementById('toastContainer');
+        var toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(function () {
+          toast.classList.add('toast-out');
+          toast.addEventListener('animationend', function () { toast.remove(); });
+        }, 2500);
+      };
+	  
+	    // ---------- 全局弹窗工具 ----------
+    window.Modal = (function () {
+      var editOverlay = document.getElementById('editModal');
+      var editTitle = document.getElementById('editModalTitle');
+      var editBody = document.getElementById('editModalBody');
+      var editConfirm = document.getElementById('editConfirmBtn');
+      var editCancel = document.getElementById('editCancelBtn');
+      var editClose = document.getElementById('editModalClose');
+
+      var delOverlay = document.getElementById('deleteModal');
+      var delText = document.getElementById('deleteModalText');
+      var delConfirm = document.getElementById('deleteConfirmBtn');
+      var delCancel = document.getElementById('deleteCancelBtn');
+      var delClose = document.getElementById('deleteModalClose');
+
+      var onEditConfirm = null;
+      var onDeleteConfirm = null;
+
+      // ---- 编辑弹窗 ----
+      function openEdit(title, bodyHTML, onConfirm) {
+        editTitle.textContent = title;
+        editBody.innerHTML = bodyHTML;
+        onEditConfirm = onConfirm;
+        editConfirm.disabled = false;
+        editConfirm.textContent = '保存';
+        editOverlay.classList.add('open');
+      }
+
+      function closeEdit() {
+        editOverlay.classList.remove('open');
+        onEditConfirm = null;
+      }
+
+      editClose.addEventListener('click', closeEdit);
+      editCancel.addEventListener('click', closeEdit);
+      editOverlay.addEventListener('click', function (e) {
+        if (e.target === editOverlay) closeEdit();
+      });
+
+      editConfirm.addEventListener('click', function () {
+        if (!onEditConfirm) return;
+        var cb = onEditConfirm;
+        onEditConfirm = null;          // 一次性：立即清空，防止二次进入
+        editConfirm.disabled = true;
+        editConfirm.textContent = '保存中...';
+        cb(function () {
+          editConfirm.disabled = false;
+          editConfirm.textContent = '保存';
+          closeEdit();
+        });
+      });
+
+      // ---- 删除确认弹窗 ----
+      function openDelete(text, onConfirm) {
+        delText.textContent = text || '确定要删除这条记录吗？此操作不可撤销。';
+        onDeleteConfirm = onConfirm;
+        delConfirm.disabled = false;
+        delConfirm.textContent = '确认删除';
+        delOverlay.classList.add('open');
+      }
+
+      function closeDelete() {
+        delOverlay.classList.remove('open');
+        onDeleteConfirm = null;
+      }
+
+      delClose.addEventListener('click', closeDelete);
+      delCancel.addEventListener('click', closeDelete);
+      delOverlay.addEventListener('click', function (e) {
+        if (e.target === delOverlay) closeDelete();
+      });
+
+      delConfirm.addEventListener('click', function () {
+        if (!onDeleteConfirm) return;
+        var cb = onDeleteConfirm;
+        onDeleteConfirm = null;         // 一次性：立即清空，防止二次进入
+        delConfirm.disabled = true;
+        delConfirm.textContent = '删除中...';
+        cb(function () {
+          delConfirm.disabled = false;
+          delConfirm.textContent = '确认删除';
+          closeDelete();
+        });
+      });
+
+      return {
+        openEdit: openEdit,
+        closeEdit: closeEdit,
+        openDelete: openDelete,
+        closeDelete: closeDelete,
+      };
+    })();
+
+
+
+
+    })();
+  </script>
+</body>
+</html>

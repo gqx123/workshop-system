@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>故障报告 - 车间产线记录系统</title>
+  <link rel="stylesheet" href="/frontend/css/variables.css">
+  <link rel="stylesheet" href="/frontend/css/mobile.css">
+</head>
+<body data-theme="light">
+
+  <div class="header">
+    <a href="#" id="backBtn" style="position:absolute;left:16px;font-size:20px;color:var(--text);text-decoration:none;">&#8249;</a>
+    <h1 class="header-title">故障报告</h1>
+  </div>
+
+  <div class="header-machine" id="machineInfo" style="display:none;">
+    <span class="machine-code" id="machineCode"></span>
+    <span class="machine-name" id="machineName"></span>
+  </div>
+
+  <div class="content safe-bottom">
+    <form id="recordForm" autocomplete="off">
+
+      <div class="form-group">
+        <label class="form-label">上报人员 <span class="required">*</span></label>
+        <input type="text" class="form-input" id="operator_name" name="operator_name" placeholder="姓名" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">故障类型 <span class="required">*</span></label>
+        <select class="form-select" id="fault_type" name="fault_type" required>
+          <option value="">请选择</option>
+          <option value="机械故障">机械故障</option>
+          <option value="电气故障">电气故障</option>
+          <option value="精度异常">精度异常</option>
+          <option value="异响">异响</option>
+          <option value="漏油">漏油</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">严重程度</label>
+        <select class="form-select" id="severity" name="severity">
+          <option value="一般">一般</option>
+          <option value="严重">严重</option>
+          <option value="紧急">紧急</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">故障描述 <span class="required">*</span></label>
+        <textarea class="form-textarea" id="description" name="description" placeholder="详细描述故障现象" rows="4" required></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-danger" id="submitBtn">提交故障报告</button>
+
+    </form>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    document.getElementById('backBtn').href =
+      '/frontend/mobile/?machine_id=' +
+      new URLSearchParams(window.location.search).get('machine_id');
+  </script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/mobile-fault.js"></script>
+</body>
+</html>

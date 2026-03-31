@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>车间记录 - 车间产线记录系统</title>
+  <link rel="stylesheet" href="/frontend/css/variables.css">
+  <link rel="stylesheet" href="/frontend/css/mobile.css">
+  <style>
+    .menu-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .menu-item:active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .menu-item .menu-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+    .menu-item .menu-icon.prod { background: #e8f5ee; color: #1a6b3c; }
+    .menu-item .menu-icon.maint { background: #e8f0fe; color: #1a56b8; }
+    .menu-item .menu-icon.fault { background: #fef2f2; color: #dc2626; }
+    .menu-item .menu-text {
+      flex: 1;
+    }
+    .menu-item .menu-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .menu-item .menu-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .menu-item .menu-arrow {
+      font-size: 18px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <div class="header">
+    <h1 class="header-title">车间记录</h1>
+  </div>
+
+  <div class="header-machine" id="machineInfo" style="display:none;">
+    <span class="machine-code" id="machineCode"></span>
+    <span class="machine-name" id="machineName"></span>
+  </div>
+
+  <div class="content safe-bottom">
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;">请选择要填写的记录类型：</p>
+    <div class="menu-list">
+      <a class="menu-item" id="linkProduction" href="#">
+        <div class="menu-icon prod">&#9881;</div>
+        <div class="menu-text">
+          <div class="menu-title">生产记录</div>
+          <div class="menu-desc">产品、数量、时间</div>
+        </div>
+        <div class="menu-arrow">&rsaquo;</div>
+      </a>
+      <a class="menu-item" id="linkMaintenance" href="#">
+        <div class="menu-icon maint">&#9878;</div>
+        <div class="menu-text">
+          <div class="menu-title">保养记录</div>
+          <div class="menu-desc">保养类型、内容、耗时</div>
+        </div>
+        <div class="menu-arrow">&rsaquo;</div>
+      </a>
+      <a class="menu-item" id="linkFault" href="#">
+        <div class="menu-icon fault">&#9888;</div>
+        <div class="menu-text">
+          <div class="menu-title">故障报告</div>
+          <div class="menu-desc">故障类型、严重程度</div>
+        </div>
+        <div class="menu-arrow">&rsaquo;</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/mobile-index.js"></script>
+</body>
+</html>
