@@ -258,6 +258,53 @@
         return get('/api/stats');
       },
     },
+
+    // ---- 点检模板 ----
+    inspectionTemplates: {
+      /** 获取某设备的点检模板 */
+      getAll: function (machineId) {
+        return get('/api/inspection-templates', { machine_id: machineId });
+      },
+      /** 新增点检模板项目 */
+      create: function (data) {
+        return post('/api/inspection-templates', data);
+      },
+      /** 更新点检模板项目 */
+      update: function (id, data) {
+        return put('/api/inspection-templates/' + id, data);
+      },
+      /** 删除点检模板项目 */
+      remove: function (id) {
+        return del('/api/inspection-templates/' + id);
+      },
+      /** 从其他设备复制模板 */
+      copy: function (sourceMachineId, targetMachineId) {
+        return post('/api/inspection-templates/copy', {
+          source_machine_id: sourceMachineId,
+          target_machine_id: targetMachineId,
+        });
+      },
+    },
+
+    // ---- 点检记录 ----
+    inspection: {
+      /** 提交点检记录 */
+      create: function (data) {
+        return post('/api/inspection', data);
+      },
+      /** 查询点检记录，params: { machine_id } */
+      list: function (params) {
+        return get('/api/inspection', params);
+      },
+      /** 根据 ID 获取单条点检记录 */
+      getById: function (id) {
+        return get('/api/inspection/' + id);
+      },
+      /** 删除点检记录 */
+      remove: function (id) {
+        return del('/api/inspection/' + id);
+      },
+    },
   };
 
   // ----------------------------------------------------------------

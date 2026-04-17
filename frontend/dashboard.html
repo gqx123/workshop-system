@@ -26,6 +26,76 @@
     .nav-badge.visible {
       display: inline-block;
     }
+    /* 点检模板弹窗 */
+    .tpl-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .tpl-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .tpl-item .tpl-order {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tpl-item .tpl-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .tpl-item .tpl-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .tpl-item .tpl-actions button {
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+    .tpl-add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tpl-add-row input {
+      flex: 1;
+    }
+    .tpl-copy-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+    }
+    .tpl-copy-row label {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .tpl-copy-row select {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -60,6 +130,41 @@
       </div>
     </div>
   </div>
+
+  <!-- ========== 点检模板管理弹窗 ========== -->
+  <div class="modal-overlay" id="tplModal">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <span class="modal-title" id="tplModalTitle">点检模板</span>
+        <button class="modal-close" id="tplModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- 从其他设备复制 -->
+        <div class="tpl-copy-row">
+          <label>从其他设备复制：</label>
+          <select class="form-select" id="tplCopySource">
+            <option value="">请选择源设备</option>
+          </select>
+          <button class="btn btn-primary" id="tplCopyBtn" style="padding:7px 14px;font-size:12px;">复制</button>
+        </div>
+        <!-- 新增项目 -->
+        <div class="tpl-add-row">
+          <input type="text" class="form-input" id="tplNewName" placeholder="输入新的点检项目名称">
+          <button class="btn btn-primary" id="tplAddBtn" style="white-space:nowrap;">+ 添加</button>
+        </div>
+        <!-- 项目列表 -->
+        <div class="tpl-list" id="tplList">
+          <div class="empty-state" style="padding:24px 0;">
+            <div class="empty-text">暂无点检项目，请添加或从其他设备复制</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="tplCloseBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <div class="layout">
 
     <!-- ========== 侧边栏 ========== -->
@@ -77,10 +182,6 @@
         <button class="nav-item" data-panel="production">
           <span class="nav-icon">&#9881;</span>
           生产记录
-        </button>
-        <button class="nav-item" data-panel="maintenance">
-          <span class="nav-icon">&#9878;</span>
-          保养记录
         </button>
         <button class="nav-item" data-panel="faults">
           <span class="nav-icon">&#9888;</span>
@@ -144,7 +245,7 @@
                   <th>实际</th>
                   <th>不良</th>
                   <th>操作人</th>
-                  <th>备注</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody id="prodTableBody"></tbody>
@@ -157,48 +258,6 @@
           <div class="empty-state" id="prodEmpty" style="display:none;">
             <div class="empty-icon">&#128203;</div>
             <div class="empty-text">暂无生产记录</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 保养记录 -->
-      <div class="panel" id="panel-maintenance">
-        <div class="main-header">
-          <h1 class="page-title">保养记录</h1>
-        </div>
-        <div class="main-body">
-          <div class="toolbar">
-            <div class="toolbar-group">
-              <select class="form-select" id="maintFilterMachine">
-                <option value="">全部机床</option>
-              </select>
-              <button class="btn btn-primary" id="maintFilterBtn">查询</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>机床</th>
-                  <th>类型</th>
-                  <th>内容</th>
-                  <th>更换部件</th>
-                  <th>耗时</th>
-                  <th>操作人</th>
-                  <th>下次保养</th>
-                </tr>
-              </thead>
-              <tbody id="maintTableBody"></tbody>
-            </table>
-          </div>
-          <div class="loading" id="maintLoading" style="display:none;">
-            <div class="loading-spinner"></div>
-            <span>加载中...</span>
-          </div>
-          <div class="empty-state" id="maintEmpty" style="display:none;">
-            <div class="empty-icon">&#128295;</div>
-            <div class="empty-text">暂无保养记录</div>
           </div>
         </div>
       </div>
@@ -247,7 +306,7 @@
         </div>
       </div>
 
-            <!-- 机床管理 -->
+      <!-- 机床管理 -->
       <div class="panel" id="panel-machines">
         <div class="main-header">
           <h1 class="page-title">机床管理</h1>
@@ -284,7 +343,6 @@
         </div>
       </div>
 
-
     </main>
   </div>
 
@@ -315,7 +373,6 @@
   <script src="/frontend/js/api.js"></script>
   <script src="/frontend/js/dash-overview.js"></script>
   <script src="/frontend/js/dash-production.js"></script>
-  <script src="/frontend/js/dash-maintenance.js"></script>
   <script src="/frontend/js/dash-faults.js"></script>
   <script src="/frontend/js/dash-machines.js"></script>
 
@@ -331,7 +388,6 @@
       var modules = {
         overview:    DashOverview,
         production:  DashProduction,
-        maintenance: DashMaintenance,
         faults:      DashFaults,
         machines:    DashMachines,
       };
@@ -344,7 +400,7 @@
       });
 
       // ---------- 侧边栏切换 ----------
-      var navItems = document.querySelectorAll('.nav-item');
+      var navItems = document.querySelectorAll('.nav-item[data-panel]');
       var panels = document.querySelectorAll('.panel');
 
       navItems.forEach(function (btn) {
@@ -390,108 +446,234 @@
           toast.addEventListener('animationend', function () { toast.remove(); });
         }, 2500);
       };
-      
-	  // ---------- 登出功能 ----------
+
+      // ---------- 登出功能 ----------
       document.getElementById('logoutBtn').addEventListener('click', function () {
         if (confirm('确定要登出吗？')) {
           window.location.href = '/logout';
         }
       });
-	    // ---------- 全局弹窗工具 ----------
-    window.Modal = (function () {
-      var editOverlay = document.getElementById('editModal');
-      var editTitle = document.getElementById('editModalTitle');
-      var editBody = document.getElementById('editModalBody');
-      var editConfirm = document.getElementById('editConfirmBtn');
-      var editCancel = document.getElementById('editCancelBtn');
-      var editClose = document.getElementById('editModalClose');
 
-      var delOverlay = document.getElementById('deleteModal');
-      var delText = document.getElementById('deleteModalText');
-      var delConfirm = document.getElementById('deleteConfirmBtn');
-      var delCancel = document.getElementById('deleteCancelBtn');
-      var delClose = document.getElementById('deleteModalClose');
+      // ---------- 全局弹窗工具 ----------
+      window.Modal = (function () {
+        var editOverlay = document.getElementById('editModal');
+        var editTitle = document.getElementById('editModalTitle');
+        var editBody = document.getElementById('editModalBody');
+        var editConfirm = document.getElementById('editConfirmBtn');
+        var editCancel = document.getElementById('editCancelBtn');
+        var editClose = document.getElementById('editModalClose');
 
-      var onEditConfirm = null;
-      var onDeleteConfirm = null;
+        var delOverlay = document.getElementById('deleteModal');
+        var delText = document.getElementById('deleteModalText');
+        var delConfirm = document.getElementById('deleteConfirmBtn');
+        var delCancel = document.getElementById('deleteCancelBtn');
+        var delClose = document.getElementById('deleteModalClose');
 
-      // ---- 编辑弹窗 ----
-      function openEdit(title, bodyHTML, onConfirm) {
-        editTitle.textContent = title;
-        editBody.innerHTML = bodyHTML;
-        onEditConfirm = onConfirm;
-        editConfirm.disabled = false;
-        editConfirm.textContent = '保存';
-        editOverlay.classList.add('open');
-      }
+        var onEditConfirm = null;
+        var onDeleteConfirm = null;
 
-      function closeEdit() {
-        editOverlay.classList.remove('open');
-        onEditConfirm = null;
-      }
-
-      editClose.addEventListener('click', closeEdit);
-      editCancel.addEventListener('click', closeEdit);
-      editOverlay.addEventListener('click', function (e) {
-        if (e.target === editOverlay) closeEdit();
-      });
-
-      editConfirm.addEventListener('click', function () {
-        if (!onEditConfirm) return;
-        var cb = onEditConfirm;
-        onEditConfirm = null;          // 一次性：立即清空，防止二次进入
-        editConfirm.disabled = true;
-        editConfirm.textContent = '保存中...';
-        cb(function () {
+        // ---- 编辑弹窗 ----
+        function openEdit(title, bodyHTML, onConfirm) {
+          editTitle.textContent = title;
+          editBody.innerHTML = bodyHTML;
+          onEditConfirm = onConfirm;
           editConfirm.disabled = false;
           editConfirm.textContent = '保存';
-          closeEdit();
+          editOverlay.classList.add('open');
+        }
+
+        function closeEdit() {
+          editOverlay.classList.remove('open');
+          onEditConfirm = null;
+        }
+
+        editClose.addEventListener('click', closeEdit);
+        editCancel.addEventListener('click', closeEdit);
+        editOverlay.addEventListener('click', function (e) {
+          if (e.target === editOverlay) closeEdit();
         });
-      });
 
-      // ---- 删除确认弹窗 ----
-      function openDelete(text, onConfirm) {
-        delText.textContent = text || '确定要删除这条记录吗？此操作不可撤销。';
-        onDeleteConfirm = onConfirm;
-        delConfirm.disabled = false;
-        delConfirm.textContent = '确认删除';
-        delOverlay.classList.add('open');
-      }
+        editConfirm.addEventListener('click', function () {
+          if (!onEditConfirm) return;
+          var cb = onEditConfirm;
+          onEditConfirm = null;
+          editConfirm.disabled = true;
+          editConfirm.textContent = '保存中...';
+          cb(function () {
+            editConfirm.disabled = false;
+            editConfirm.textContent = '保存';
+            closeEdit();
+          });
+        });
 
-      function closeDelete() {
-        delOverlay.classList.remove('open');
-        onDeleteConfirm = null;
-      }
-
-      delClose.addEventListener('click', closeDelete);
-      delCancel.addEventListener('click', closeDelete);
-      delOverlay.addEventListener('click', function (e) {
-        if (e.target === delOverlay) closeDelete();
-      });
-
-      delConfirm.addEventListener('click', function () {
-        if (!onDeleteConfirm) return;
-        var cb = onDeleteConfirm;
-        onDeleteConfirm = null;         // 一次性：立即清空，防止二次进入
-        delConfirm.disabled = true;
-        delConfirm.textContent = '删除中...';
-        cb(function () {
+        // ---- 删除确认弹窗 ----
+        function openDelete(text, onConfirm) {
+          delText.textContent = text || '确定要删除这条记录吗？此操作不可撤销。';
+          onDeleteConfirm = onConfirm;
           delConfirm.disabled = false;
           delConfirm.textContent = '确认删除';
-          closeDelete();
+          delOverlay.classList.add('open');
+        }
+
+        function closeDelete() {
+          delOverlay.classList.remove('open');
+          onDeleteConfirm = null;
+        }
+
+        delClose.addEventListener('click', closeDelete);
+        delCancel.addEventListener('click', closeDelete);
+        delOverlay.addEventListener('click', function (e) {
+          if (e.target === delOverlay) closeDelete();
         });
-      });
 
-      return {
-        openEdit: openEdit,
-        closeEdit: closeEdit,
-        openDelete: openDelete,
-        closeDelete: closeDelete,
-      };
-    })();
+        delConfirm.addEventListener('click', function () {
+          if (!onDeleteConfirm) return;
+          var cb = onDeleteConfirm;
+          onDeleteConfirm = null;
+          delConfirm.disabled = true;
+          delConfirm.textContent = '删除中...';
+          cb(function () {
+            delConfirm.disabled = false;
+            delConfirm.textContent = '确认删除';
+            closeDelete();
+          });
+        });
 
+        return {
+          openEdit: openEdit,
+          closeEdit: closeEdit,
+          openDelete: openDelete,
+          closeDelete: closeDelete,
+        };
+      })();
 
+      // ---------- 点检模板弹窗工具 ----------
+      window.TplModal = (function () {
+        var overlay = document.getElementById('tplModal');
+        var titleEl = document.getElementById('tplModalTitle');
+        var listEl = document.getElementById('tplList');
+        var newNameInput = document.getElementById('tplNewName');
+        var addBtn = document.getElementById('tplAddBtn');
+        var copySource = document.getElementById('tplCopySource');
+        var copyBtn = document.getElementById('tplCopyBtn');
+        var closeBtn = document.getElementById('tplCloseBtn');
+        var closeX = document.getElementById('tplModalClose');
 
+        var currentMachineId = null;
+        var allMachines = [];
+
+        function open(machineId, machineCode) {
+          currentMachineId = machineId;
+          titleEl.textContent = '点检模板 - ' + machineCode;
+          overlay.classList.add('open');
+          loadMachines();
+          loadTemplates();
+        }
+
+        function close() {
+          overlay.classList.remove('open');
+          currentMachineId = null;
+        }
+
+        async function loadMachines() {
+          try {
+            allMachines = await API.machines.getAll();
+            copySource.innerHTML = '<option value="">请选择源设备</option>' +
+              allMachines.filter(function (m) { return m.id !== currentMachineId; })
+                .map(function (m) {
+                  return '<option value="' + m.id + '">' + esc(m.machine_code) + ' ' + esc(m.machine_name) + '</option>';
+                }).join('');
+          } catch (e) { console.error(e); }
+        }
+
+        async function loadTemplates() {
+          try {
+            var items = await API.inspectionTemplates.getAll(currentMachineId);
+            renderList(items);
+          } catch (err) {
+            window.showToast('加载模板失败: ' + err.message, 'error');
+          }
+        }
+
+        function renderList(items) {
+          if (!items.length) {
+            listEl.innerHTML = '<div class="empty-state" style="padding:24px 0;"><div class="empty-text">暂无点检项目，请添加或从其他设备复制</div></div>';
+            return;
+          }
+          listEl.innerHTML = items.map(function (item, i) {
+            return (
+              '<div class="tpl-item" data-id="' + item.id + '">' +
+                '<span class="tpl-order">' + (i + 1) + '</span>' +
+                '<span class="tpl-name">' + esc(item.item_name) + '</span>' +
+                '<span class="tpl-actions">' +
+                  '<button class="btn btn-ghost" onclick="TplModal.editItem(' + item.id + ',\'' + escAttr(item.item_name) + '\')">编辑</button>' +
+                  '<button class="btn btn-danger" onclick="TplModal.deleteItem(' + item.id + ')">删除</button>' +
+                '</span>' +
+              '</div>'
+            );
+          }).join('');
+        }
+
+        // 新增项目
+        addBtn.addEventListener('click', async function () {
+          var name = newNameInput.value.trim();
+          if (!name) { window.showToast('请输入项目名称', 'warning'); newNameInput.focus(); return; }
+          try {
+            await API.inspectionTemplates.create({ machine_id: currentMachineId, item_name: name });
+            newNameInput.value = '';
+            loadTemplates();
+            window.showToast('添加成功', 'success');
+          } catch (err) { window.showToast('添加失败: ' + err.message, 'error'); }
+        });
+
+        newNameInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+        });
+
+        // 编辑项目
+        function editItem(id, oldName) {
+          var newName = prompt('修改点检项目名称：', oldName);
+          if (newName === null || newName.trim() === '' || newName.trim() === oldName) return;
+          API.inspectionTemplates.update(id, { item_name: newName.trim() })
+            .then(function () { loadTemplates(); window.showToast('更新成功', 'success'); })
+            .catch(function (err) { window.showToast('更新失败: ' + err.message, 'error'); });
+        }
+
+        // 删除项目
+        function deleteItem(id) {
+          if (!confirm('确定删除这个点检项目吗？')) return;
+          API.inspectionTemplates.remove(id)
+            .then(function () { loadTemplates(); window.showToast('删除成功', 'success'); })
+            .catch(function (err) { window.showToast('删除失败: ' + err.message, 'error'); });
+        }
+
+        // 复制模板
+        copyBtn.addEventListener('click', async function () {
+          var sourceId = parseInt(copySource.value, 10);
+          if (!sourceId) { window.showToast('请选择源设备', 'warning'); return; }
+          if (!confirm('复制将覆盖当前设备已有的点检模板，确定继续？')) return;
+          try {
+            var result = await API.inspectionTemplates.copy(sourceId, currentMachineId);
+            loadTemplates();
+            window.showToast('已复制 ' + result.copied + ' 个项目', 'success');
+          } catch (err) { window.showToast('复制失败: ' + err.message, 'error'); }
+        });
+
+        // 关闭
+        closeBtn.addEventListener('click', close);
+        closeX.addEventListener('click', close);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+        function esc(s) { var e = document.createElement('span'); e.textContent = s == null ? '' : s; return e.innerHTML; }
+        function escAttr(s) { return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+        return {
+          open: open,
+          close: close,
+          editItem: editItem,
+          deleteItem: deleteItem,
+        };
+      })();
 
     })();
   </script>

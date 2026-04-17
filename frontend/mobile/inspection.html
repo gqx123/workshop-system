@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>设备点检 - 车间产线记录系统</title>
+  <link rel="stylesheet" href="/frontend/css/variables.css">
+  <link rel="stylesheet" href="/frontend/css/mobile.css">
+  <style>
+    /* 点检项目行 */
+    .insp-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+    }
+    .insp-item .insp-index {
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .insp-item .insp-name {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    /* 正常/异常切换开关 */
+    .insp-toggle {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .insp-toggle button {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .insp-toggle button:first-child {
+      border-right: 1px solid var(--border);
+    }
+    .insp-toggle button.active-ok {
+      background: var(--green-bg);
+      color: var(--green);
+      font-weight: 600;
+    }
+    .insp-toggle button.active-bad {
+      background: var(--red-bg);
+      color: var(--red);
+      font-weight: 600;
+    }
+    /* 异常备注 */
+    .insp-note {
+      margin-top: 8px;
+      margin-left: 38px;
+    }
+    .insp-note input {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    .insp-note input:focus {
+      border-color: var(--red);
+    }
+    /* 空状态 */
+    .insp-empty {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <div class="header">
+    <a href="#" id="backBtn" style="position:absolute;left:16px;font-size:20px;color:var(--text);text-decoration:none;">&#8249;</a>
+    <h1 class="header-title">设备点检</h1>
+  </div>
+
+  <div class="header-machine" id="machineInfo" style="display:none;">
+    <span class="machine-code" id="machineCode"></span>
+    <span class="machine-name" id="machineName"></span>
+  </div>
+
+  <div class="content safe-bottom">
+    <!-- 点检项目列表 -->
+    <div id="inspList">
+      <div class="loading" id="inspLoading">
+        <div class="loading-spinner"></div>
+        <span>加载点检项目...</span>
+      </div>
+    </div>
+
+    <!-- 点检人 + 备注 + 提交（初始隐藏） -->
+    <div id="inspForm" style="display:none;">
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label">点检人员 <span class="required">*</span></label>
+        <input type="text" class="form-input" id="operator_name" placeholder="姓名" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <textarea class="form-textarea" id="remark" placeholder="补充说明（选填）" rows="3"></textarea>
+      </div>
+
+      <button type="button" class="btn btn-primary" id="submitBtn">提交点检记录</button>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    document.getElementById('backBtn').href =
+      '/frontend/mobile/?machine_id=' +
+      new URLSearchParams(window.location.search).get('machine_id');
+  </script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/mobile-inspection.js"></script>
+</body>
+</html>
