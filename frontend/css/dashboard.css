@@ -657,3 +657,16 @@ td.mono {
     width: 95%;
   }
 }
+
+/* 登出按钮 */
+.nav-item.logout {
+  color: var(--red) !important;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.nav-item.logout:hover {
+  background: var(--red-bg) !important;
+  color: var(--red) !important;
+}

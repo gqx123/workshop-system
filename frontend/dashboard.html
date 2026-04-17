@@ -91,6 +91,11 @@
           <span class="nav-icon">&#9638;</span>
           机床管理
         </button>
+         <!-- 登出按钮 -->
+        <button class="nav-item logout" id="logoutBtn" style="margin-top:auto;">
+          <span class="nav-icon">&#9099;</span>
+          登出
+        </button>
       </div>
     </nav>
 
@@ -385,7 +390,13 @@
           toast.addEventListener('animationend', function () { toast.remove(); });
         }, 2500);
       };
-	  
+      
+	  // ---------- 登出功能 ----------
+      document.getElementById('logoutBtn').addEventListener('click', function () {
+        if (confirm('确定要登出吗？')) {
+          window.location.href = '/logout';
+        }
+      });
 	    // ---------- 全局弹窗工具 ----------
     window.Modal = (function () {
       var editOverlay = document.getElementById('editModal');
