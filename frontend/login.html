@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 车间管理系统</title>
+  <link rel="stylesheet" href="/frontend/css/variables.css">
+  <link rel="stylesheet" href="/frontend/css/login.css">
+</head>
+<body>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">&#9881;</div>
+        <h1 class="login-title">车间管理系统</h1>
+        <p class="login-subtitle">Workshop MES</p>
+      </div>
+
+      <form id="loginForm" autocomplete="off">
+        <div class="form-group">
+          <label class="form-label">用户名</label>
+          <input type="text" class="form-input" id="username" placeholder="请输入用户名" autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <input type="password" class="form-input" id="password" placeholder="请输入密码">
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="btn btn-primary" id="loginBtn">登 录</button>
+      </form>
+
+      <div class="login-footer">
+        <span>手机扫码填报无需登录</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    ;(function () {
+      'use strict';
+
+      var form = document.getElementById('loginForm');
+      var usernameInput = document.getElementById('username');
+      var passwordInput = document.getElementById('password');
+      var errorEl = document.getElementById('loginError');
+      var loginBtn = document.getElementById('loginBtn');
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        var username = usernameInput.value.trim();
+        var password = passwordInput.value;
+
+        if (!username) {
+          showError('请输入用户名');
+          usernameInput.focus();
+          return;
+        }
+        if (!password) {
+          showError('请输入密码');
+          passwordInput.focus();
+          return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.textContent = '登录中...';
+        errorEl.textContent = '';
+
+        try {
+          var res = await fetch('/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({ username: username, password: password }),
+          });
+
+          var data = await res.json();
+
+          if (res.ok && data.success) {
+            window.location.href = '/';
+          } else {
+            showError(data.error || '登录失败');
+          }
+        } catch (err) {
+          showError('网络错误，请重试');
+        } finally {
+          loginBtn.disabled = false;
+          loginBtn.textContent = '登 录';
+        }
+      });
+
+      function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+      }
+
+      // 按回车自动提交
+      passwordInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
+      });
+    })();
+  </script>
+</body>
+</html>

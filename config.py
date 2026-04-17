@@ -1,5 +1,6 @@
 """配置中心 - 所有可配置项集中在这里"""
 import os
+import secrets
 
 # 项目根目录
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,6 +12,16 @@ DB_PATH = os.path.join(BASE_DIR, "workshop.db")
 HOST = "0.0.0.0"
 PORT = 5000
 DEBUG = True
+
+# 会话密钥（登录状态加密用，每次启动随机生成）
+SECRET_KEY = secrets.token_hex(32)
+
+# 管理员账号（用户名: 密码）
+# 如需新增管理员，在这里添加即可
+# 如需修改密码，直接改这里
+ADMINS = {
+    "admin": "admin123",
+}
 
 # 二维码
 QR_DIR = os.path.join(BASE_DIR, "qrcodes")
