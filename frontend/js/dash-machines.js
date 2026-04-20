@@ -1,5 +1,5 @@
 /**
- * 仪表盘 - 机床管理面板（完整增删改查）
+ * 仪表盘 - 机床管理面板（完整增删改查 + 点检模板管理）
  */
 var DashMachines = (function () {
   'use strict';
@@ -43,6 +43,8 @@ var DashMachines = (function () {
           '<td style="white-space:nowrap;">' +
             '<a href="' + mobileUrl + '" target="_blank" style="font-size:12px;margin-right:8px;">扫码页</a>' +
             '<button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;margin-right:4px;" ' +
+              'onclick="DashMachines.openTplModal(' + m.id + ',\'' + escAttr(m.machine_code) + '\')">点检模板</button>' +
+            '<button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;margin-right:4px;" ' +
               'onclick="DashMachines.openEditModal(' + m.id + ')">编辑</button>' +
             '<button class="btn btn-danger" style="padding:3px 10px;font-size:12px;" ' +
               'onclick="DashMachines.confirmDelete(' + m.id + ',\'' + escAttr(m.machine_code) + '\')">删除</button>' +
@@ -50,6 +52,13 @@ var DashMachines = (function () {
         '</tr>'
       );
     }).join('');
+  }
+
+  // ----------------------------------------------------------------
+  // 点检模板弹窗
+  // ----------------------------------------------------------------
+  function openTplModal(machineId, machineCode) {
+    window.TplModal.open(machineId, machineCode);
   }
 
   // ----------------------------------------------------------------
@@ -217,6 +226,7 @@ var DashMachines = (function () {
     refresh: refresh,
     openCreateModal: openCreateModal,
     openEditModal: openEditModal,
+    openTplModal: openTplModal,
     confirmDelete: confirmDelete,
   };
 

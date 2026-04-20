@@ -21,4 +21,10 @@ from services.fault_service import (
 from services.stats_service import (
     get_overview_stats,
 )
-
+from services.inspection_service import (
+    get_templates,
+    create_template,
+    copy_templates,
+    create_inspection,
+    list_inspections,
+)

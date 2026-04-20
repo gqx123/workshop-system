@@ -670,3 +670,23 @@ td.mono {
   background: var(--red-bg) !important;
   color: var(--red) !important;
 }
+
+/* 点检详情弹窗明细项 */
+.insp-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+.insp-detail-item .detail-name {
+  flex: 1;
+  font-size: 13px;
+}
+.insp-detail-item .detail-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 10px;
+}

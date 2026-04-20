@@ -16,8 +16,8 @@
   // 设置三个链接的 href
   document.getElementById('linkProduction').href =
     '/frontend/mobile/production.html?machine_id=' + machineId;
-  document.getElementById('linkMaintenance').href =
-    '/frontend/mobile/maintenance.html?machine_id=' + machineId;
+  document.getElementById('linkInspection').href =
+    '/frontend/mobile/inspection.html?machine_id=' + machineId;
   document.getElementById('linkFault').href =
     '/frontend/mobile/fault.html?machine_id=' + machineId;
 

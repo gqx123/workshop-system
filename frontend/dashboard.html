@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="/frontend/css/variables.css">
   <link rel="stylesheet" href="/frontend/css/dashboard.css">
   <style>
-    /* 侧边栏徽章 */
     .nav-badge {
       margin-left: auto;
       min-width: 18px;
@@ -26,10 +25,98 @@
     .nav-badge.visible {
       display: inline-block;
     }
+    .tpl-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .tpl-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .tpl-item .tpl-order {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tpl-item .tpl-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .tpl-item .tpl-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .tpl-item .tpl-actions button {
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+    .tpl-add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tpl-add-row input {
+      flex: 1;
+    }
+    .tpl-copy-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+    }
+    .tpl-copy-row label {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .tpl-copy-row select {
+      flex: 1;
+    }
+    .insp-detail-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+    }
+    .insp-detail-item .detail-name {
+      flex: 1;
+      font-size: 13px;
+    }
+    .insp-detail-item .detail-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
-<!-- ========== 通用编辑弹窗 ========== -->
+
+  <!-- 编辑弹窗 -->
   <div class="modal-overlay" id="editModal">
     <div class="modal">
       <div class="modal-header">
@@ -44,7 +131,7 @@
     </div>
   </div>
 
-  <!-- ========== 删除确认弹窗 ========== -->
+  <!-- 删除确认弹窗 -->
   <div class="modal-overlay" id="deleteModal">
     <div class="modal" style="max-width:380px;">
       <div class="modal-header">
@@ -60,235 +147,53 @@
       </div>
     </div>
   </div>
-  <div class="layout">
 
-    <!-- ========== 侧边栏 ========== -->
-    <nav class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">车间管理系统</div>
-        <div class="logo-sub">Workshop MES</div>
+  <!-- 点检模板管理弹窗 -->
+  <div class="modal-overlay" id="tplModal">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <span class="modal-title" id="tplModalTitle">点检模板</span>
+        <button class="modal-close" id="tplModalClose">&times;</button>
       </div>
-
-      <div class="sidebar-nav">
-        <button class="nav-item active" data-panel="overview">
-          <span class="nav-icon">&#9673;</span>
-          总览
-        </button>
-        <button class="nav-item" data-panel="production">
-          <span class="nav-icon">&#9881;</span>
-          生产记录
-        </button>
-        <button class="nav-item" data-panel="maintenance">
-          <span class="nav-icon">&#9878;</span>
-          保养记录
-        </button>
-        <button class="nav-item" data-panel="faults">
-          <span class="nav-icon">&#9888;</span>
-          故障记录
-          <span class="nav-badge" id="faultBadge">0</span>
-        </button>
-        <button class="nav-item" data-panel="machines">
-          <span class="nav-icon">&#9638;</span>
-          机床管理
-        </button>
-         <!-- 登出按钮 -->
-        <button class="nav-item logout" id="logoutBtn" style="margin-top:auto;">
-          <span class="nav-icon">&#9099;</span>
-          登出
-        </button>
-      </div>
-    </nav>
-
-    <!-- ========== 主内容 ========== -->
-    <main class="main">
-
-      <!-- 总览 -->
-      <div class="panel active" id="panel-overview">
-        <div class="main-header">
-          <h1 class="page-title">总览</h1>
+      <div class="modal-body">
+        <div class="tpl-copy-row">
+          <label>从其他设备复制：</label>
+          <select class="form-select" id="tplCopySource">
+            <option value="">请选择源设备</option>
+          </select>
+          <button class="btn btn-primary" id="tplCopyBtn" style="padding:7px 14px;font-size:12px;">复制</button>
         </div>
-        <div class="main-body">
-          <!-- 统计卡片 -->
-          <div class="stats-grid" id="overviewStats"></div>
-          <!-- 机床今日产量 -->
-          <h3 style="margin-bottom:14px;font-size:15px;font-weight:600;">今日各机床产量</h3>
-          <div class="machine-grid" id="overviewMachines"></div>
+        <div class="tpl-add-row">
+          <input type="text" class="form-input" id="tplNewName" placeholder="输入新的点检项目名称">
+          <button class="btn btn-primary" id="tplAddBtn" style="white-space:nowrap;">+ 添加</button>
         </div>
-      </div>
-
-      <!-- 生产记录 -->
-      <div class="panel" id="panel-production">
-        <div class="main-header">
-          <h1 class="page-title">生产记录</h1>
-        </div>
-        <div class="main-body">
-          <div class="toolbar">
-            <div class="toolbar-group">
-              <select class="form-select" id="prodFilterMachine">
-                <option value="">全部机床</option>
-              </select>
-              <input type="date" class="form-input" id="prodFilterFrom" placeholder="起始日期">
-              <input type="date" class="form-input" id="prodFilterTo" placeholder="截止日期">
-              <button class="btn btn-primary" id="prodFilterBtn">查询</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>机床</th>
-                  <th>产品</th>
-                  <th>批次</th>
-                  <th>计划</th>
-                  <th>实际</th>
-                  <th>不良</th>
-                  <th>操作人</th>
-                  <th>备注</th>
-                </tr>
-              </thead>
-              <tbody id="prodTableBody"></tbody>
-            </table>
-          </div>
-          <div class="loading" id="prodLoading" style="display:none;">
-            <div class="loading-spinner"></div>
-            <span>加载中...</span>
-          </div>
-          <div class="empty-state" id="prodEmpty" style="display:none;">
-            <div class="empty-icon">&#128203;</div>
-            <div class="empty-text">暂无生产记录</div>
+        <div class="tpl-list" id="tplList">
+          <div class="empty-state" style="padding:24px 0;">
+            <div class="empty-text">暂无点检项目，请添加或从其他设备复制</div>
           </div>
         </div>
       </div>
-
-      <!-- 保养记录 -->
-      <div class="panel" id="panel-maintenance">
-        <div class="main-header">
-          <h1 class="page-title">保养记录</h1>
-        </div>
-        <div class="main-body">
-          <div class="toolbar">
-            <div class="toolbar-group">
-              <select class="form-select" id="maintFilterMachine">
-                <option value="">全部机床</option>
-              </select>
-              <button class="btn btn-primary" id="maintFilterBtn">查询</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>机床</th>
-                  <th>类型</th>
-                  <th>内容</th>
-                  <th>更换部件</th>
-                  <th>耗时</th>
-                  <th>操作人</th>
-                  <th>下次保养</th>
-                </tr>
-              </thead>
-              <tbody id="maintTableBody"></tbody>
-            </table>
-          </div>
-          <div class="loading" id="maintLoading" style="display:none;">
-            <div class="loading-spinner"></div>
-            <span>加载中...</span>
-          </div>
-          <div class="empty-state" id="maintEmpty" style="display:none;">
-            <div class="empty-icon">&#128295;</div>
-            <div class="empty-text">暂无保养记录</div>
-          </div>
-        </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="tplCloseBtn">关闭</button>
       </div>
-
-      <!-- 故障记录 -->
-      <div class="panel" id="panel-faults">
-        <div class="main-header">
-          <h1 class="page-title">故障记录</h1>
-        </div>
-        <div class="main-body">
-          <div class="toolbar">
-            <div class="toolbar-group">
-              <select class="form-select" id="faultFilterStatus">
-                <option value="">全部状态</option>
-                <option value="待处理">待处理</option>
-                <option value="已解决">已解决</option>
-              </select>
-              <button class="btn btn-primary" id="faultFilterBtn">查询</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>机床</th>
-                  <th>类型</th>
-                  <th>严重程度</th>
-                  <th>描述</th>
-                  <th>状态</th>
-                  <th>上报人</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody id="faultTableBody"></tbody>
-            </table>
-          </div>
-          <div class="loading" id="faultLoading" style="display:none;">
-            <div class="loading-spinner"></div>
-            <span>加载中...</span>
-          </div>
-          <div class="empty-state" id="faultEmpty" style="display:none;">
-            <div class="empty-icon">&#9888;</div>
-            <div class="empty-text">暂无故障记录</div>
-          </div>
-        </div>
-      </div>
-
-            <!-- 机床管理 -->
-      <div class="panel" id="panel-machines">
-        <div class="main-header">
-          <h1 class="page-title">机床管理</h1>
-        </div>
-        <div class="main-body">
-          <div class="toolbar">
-            <div class="toolbar-group">
-              <button class="btn btn-primary" onclick="DashMachines.openCreateModal()">+ 新增机床</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>编号</th>
-                  <th>名称</th>
-                  <th>类型</th>
-                  <th>位置</th>
-                  <th>状态</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody id="machineTableBody"></tbody>
-            </table>
-          </div>
-          <div class="loading" id="machineLoading" style="display:none;">
-            <div class="loading-spinner"></div>
-            <span>加载中...</span>
-          </div>
-          <div class="empty-state" id="machineEmpty" style="display:none;">
-            <div class="empty-icon">&#9638;</div>
-            <div class="empty-text">暂无机床数据，点击上方按钮新增</div>
-          </div>
-        </div>
-      </div>
-
-
-    </main>
+    </div>
   </div>
 
-  <!-- ========== 故障解决弹窗 ========== -->
+  <!-- 点检详情弹窗 -->
+  <div class="modal-overlay" id="inspDetailModal">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <span class="modal-title" id="inspDetailTitle">点检详情</span>
+        <button class="modal-close" id="inspDetailClose">&times;</button>
+      </div>
+      <div class="modal-body" id="inspDetailBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="inspDetailCloseBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 故障解决弹窗 -->
   <div class="modal-overlay" id="resolveModal">
     <div class="modal">
       <div class="modal-header">
@@ -308,76 +213,189 @@
     </div>
   </div>
 
-  <!-- ========== Toast 容器 ========== -->
+  <div class="layout">
+
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">车间管理系统</div>
+        <div class="logo-sub">Workshop MES</div>
+      </div>
+      <div class="sidebar-nav">
+        <button class="nav-item active" data-panel="overview">
+          <span class="nav-icon">&#9673;</span> 总览
+        </button>
+        <button class="nav-item" data-panel="production">
+          <span class="nav-icon">&#9881;</span> 生产记录
+        </button>
+        <button class="nav-item" data-panel="inspection">
+          <span class="nav-icon">&#9745;</span> 点检记录
+        </button>
+        <button class="nav-item" data-panel="faults">
+          <span class="nav-icon">&#9888;</span> 故障记录
+          <span class="nav-badge" id="faultBadge">0</span>
+        </button>
+        <button class="nav-item" data-panel="machines">
+          <span class="nav-icon">&#9638;</span> 机床管理
+        </button>
+        <button class="nav-item logout" id="logoutBtn" style="margin-top:auto;">
+          <span class="nav-icon">&#9099;</span> 登出
+        </button>
+      </div>
+    </nav>
+
+    <!-- 主内容 -->
+    <main class="main">
+
+      <!-- 总览 -->
+      <div class="panel active" id="panel-overview">
+        <div class="main-header"><h1 class="page-title">总览</h1></div>
+        <div class="main-body">
+          <div class="stats-grid" id="overviewStats"></div>
+          <h3 style="margin-bottom:14px;font-size:15px;font-weight:600;">今日各机床产量</h3>
+          <div class="machine-grid" id="overviewMachines"></div>
+        </div>
+      </div>
+
+      <!-- 生产记录 -->
+      <div class="panel" id="panel-production">
+        <div class="main-header"><h1 class="page-title">生产记录</h1></div>
+        <div class="main-body">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <select class="form-select" id="prodFilterMachine"><option value="">全部机床</option></select>
+              <input type="date" class="form-input" id="prodFilterFrom" placeholder="起始日期">
+              <input type="date" class="form-input" id="prodFilterTo" placeholder="截止日期">
+              <button class="btn btn-primary" id="prodFilterBtn">查询</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>时间</th><th>机床</th><th>产品</th><th>批次</th><th>计划</th><th>实际</th><th>不良</th><th>操作人</th><th>操作</th></tr></thead>
+              <tbody id="prodTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="prodLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
+          <div class="empty-state" id="prodEmpty" style="display:none;"><div class="empty-icon">&#128203;</div><div class="empty-text">暂无生产记录</div></div>
+        </div>
+      </div>
+
+      <!-- 点检记录 -->
+      <div class="panel" id="panel-inspection">
+        <div class="main-header"><h1 class="page-title">点检记录</h1></div>
+        <div class="main-body">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <select class="form-select" id="inspFilterMachine"><option value="">全部机床</option></select>
+              <button class="btn btn-primary" id="inspFilterBtn">查询</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>时间</th><th>机床</th><th>点检人</th><th>点检结果</th><th>备注</th><th>操作</th></tr></thead>
+              <tbody id="inspTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="inspLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
+          <div class="empty-state" id="inspEmpty" style="display:none;"><div class="empty-icon">&#9745;</div><div class="empty-text">暂无点检记录</div></div>
+        </div>
+      </div>
+
+      <!-- 故障记录 -->
+      <div class="panel" id="panel-faults">
+        <div class="main-header"><h1 class="page-title">故障记录</h1></div>
+        <div class="main-body">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <select class="form-select" id="faultFilterStatus"><option value="">全部状态</option><option value="待处理">待处理</option><option value="已解决">已解决</option></select>
+              <button class="btn btn-primary" id="faultFilterBtn">查询</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>时间</th><th>机床</th><th>类型</th><th>严重程度</th><th>描述</th><th>状态</th><th>上报人</th><th>操作</th></tr></thead>
+              <tbody id="faultTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="faultLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
+          <div class="empty-state" id="faultEmpty" style="display:none;"><div class="empty-icon">&#9888;</div><div class="empty-text">暂无故障记录</div></div>
+        </div>
+      </div>
+
+      <!-- 机床管理 -->
+      <div class="panel" id="panel-machines">
+        <div class="main-header"><h1 class="page-title">机床管理</h1></div>
+        <div class="main-body">
+          <div class="toolbar"><div class="toolbar-group"><button class="btn btn-primary" onclick="DashMachines.openCreateModal()">+ 新增机床</button></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>编号</th><th>名称</th><th>类型</th><th>位置</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody id="machineTableBody"></tbody>
+            </table>
+          </div>
+          <div class="loading" id="machineLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
+          <div class="empty-state" id="machineEmpty" style="display:none;"><div class="empty-icon">&#9638;</div><div class="empty-text">暂无机床数据，点击上方按钮新增</div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- ========== 脚本 ========== -->
   <script src="/frontend/js/api.js"></script>
   <script src="/frontend/js/dash-overview.js"></script>
   <script src="/frontend/js/dash-production.js"></script>
-  <script src="/frontend/js/dash-maintenance.js"></script>
+  <script src="/frontend/js/dash-inspection.js"></script>
   <script src="/frontend/js/dash-faults.js"></script>
   <script src="/frontend/js/dash-machines.js"></script>
 
   <script>
-    /**
-     * 仪表盘主控制器
-     * 负责面板切换、模块初始化、自动刷新
-     */
-    ;(function () {
+    (function () {
       'use strict';
 
-      // ---------- 模块注册 ----------
       var modules = {
-        overview:    DashOverview,
-        production:  DashProduction,
-        maintenance: DashMaintenance,
-        faults:      DashFaults,
-        machines:    DashMachines,
+        overview: DashOverview,
+        production: DashProduction,
+        inspection: DashInspection,
+        faults: DashFaults,
+        machines: DashMachines
       };
 
-      // ---------- 初始化所有模块 ----------
       Object.keys(modules).forEach(function (name) {
         if (modules[name] && typeof modules[name].init === 'function') {
           modules[name].init();
         }
       });
 
-      // ---------- 侧边栏切换 ----------
-      var navItems = document.querySelectorAll('.nav-item');
+      var navItems = document.querySelectorAll('.nav-item[data-panel]');
       var panels = document.querySelectorAll('.panel');
 
       navItems.forEach(function (btn) {
         btn.addEventListener('click', function () {
-          var target = btn.getAttribute('data-panel');
-          switchPanel(target);
+          switchPanel(btn.getAttribute('data-panel'));
         });
       });
 
       function switchPanel(name) {
-        // 导航高亮
         navItems.forEach(function (b) { b.classList.remove('active'); });
-        document.querySelector('.nav-item[data-panel="' + name + '"]').classList.add('active');
-
-        // 面板显示
+        var target = document.querySelector('.nav-item[data-panel="' + name + '"]');
+        if (target) target.classList.add('active');
         panels.forEach(function (p) { p.classList.remove('active'); });
-        document.getElementById('panel-' + name).classList.add('active');
-
-        // 切换时刷新
+        var panel = document.getElementById('panel-' + name);
+        if (panel) panel.classList.add('active');
         if (modules[name] && typeof modules[name].refresh === 'function') {
           modules[name].refresh();
         }
       }
 
-      // ---------- 总览面板自动刷新 ----------
       setInterval(function () {
-        var overviewPanel = document.getElementById('panel-overview');
-        if (overviewPanel.classList.contains('active')) {
+        var p = document.getElementById('panel-overview');
+        if (p && p.classList.contains('active')) {
           modules.overview.refresh();
         }
       }, 30000);
 
-      // ---------- Toast 全局方法 ----------
       window.showToast = function (message, type) {
         type = type || 'success';
         var container = document.getElementById('toastContainer');
@@ -390,108 +408,247 @@
           toast.addEventListener('animationend', function () { toast.remove(); });
         }, 2500);
       };
-      
-	  // ---------- 登出功能 ----------
+
       document.getElementById('logoutBtn').addEventListener('click', function () {
         if (confirm('确定要登出吗？')) {
           window.location.href = '/logout';
         }
       });
-	    // ---------- 全局弹窗工具 ----------
-    window.Modal = (function () {
-      var editOverlay = document.getElementById('editModal');
-      var editTitle = document.getElementById('editModalTitle');
-      var editBody = document.getElementById('editModalBody');
-      var editConfirm = document.getElementById('editConfirmBtn');
-      var editCancel = document.getElementById('editCancelBtn');
-      var editClose = document.getElementById('editModalClose');
 
-      var delOverlay = document.getElementById('deleteModal');
-      var delText = document.getElementById('deleteModalText');
-      var delConfirm = document.getElementById('deleteConfirmBtn');
-      var delCancel = document.getElementById('deleteCancelBtn');
-      var delClose = document.getElementById('deleteModalClose');
+      initModal();
+      initTplModal();
+      initInspDetailModal();
 
-      var onEditConfirm = null;
-      var onDeleteConfirm = null;
+      function initModal() {
+        var editOverlay = document.getElementById('editModal');
+        var editTitle = document.getElementById('editModalTitle');
+        var editBody = document.getElementById('editModalBody');
+        var editConfirm = document.getElementById('editConfirmBtn');
+        var editCancel = document.getElementById('editCancelBtn');
+        var editClose = document.getElementById('editModalClose');
+        var delOverlay = document.getElementById('deleteModal');
+        var delText = document.getElementById('deleteModalText');
+        var delConfirm = document.getElementById('deleteConfirmBtn');
+        var delCancel = document.getElementById('deleteCancelBtn');
+        var delClose = document.getElementById('deleteModalClose');
+        var onEditConfirm = null;
+        var onDeleteConfirm = null;
 
-      // ---- 编辑弹窗 ----
-      function openEdit(title, bodyHTML, onConfirm) {
-        editTitle.textContent = title;
-        editBody.innerHTML = bodyHTML;
-        onEditConfirm = onConfirm;
-        editConfirm.disabled = false;
-        editConfirm.textContent = '保存';
-        editOverlay.classList.add('open');
-      }
-
-      function closeEdit() {
-        editOverlay.classList.remove('open');
-        onEditConfirm = null;
-      }
-
-      editClose.addEventListener('click', closeEdit);
-      editCancel.addEventListener('click', closeEdit);
-      editOverlay.addEventListener('click', function (e) {
-        if (e.target === editOverlay) closeEdit();
-      });
-
-      editConfirm.addEventListener('click', function () {
-        if (!onEditConfirm) return;
-        var cb = onEditConfirm;
-        onEditConfirm = null;          // 一次性：立即清空，防止二次进入
-        editConfirm.disabled = true;
-        editConfirm.textContent = '保存中...';
-        cb(function () {
+        function openEdit(title, bodyHTML, onConfirm) {
+          editTitle.textContent = title;
+          editBody.innerHTML = bodyHTML;
+          onEditConfirm = onConfirm;
           editConfirm.disabled = false;
           editConfirm.textContent = '保存';
-          closeEdit();
+          editOverlay.classList.add('open');
+        }
+        function closeEdit() {
+          editOverlay.classList.remove('open');
+          onEditConfirm = null;
+        }
+        editClose.addEventListener('click', closeEdit);
+        editCancel.addEventListener('click', closeEdit);
+        editOverlay.addEventListener('click', function (e) {
+          if (e.target === editOverlay) closeEdit();
         });
-      });
+        editConfirm.addEventListener('click', function () {
+          if (!onEditConfirm) return;
+          var cb = onEditConfirm;
+          onEditConfirm = null;
+          editConfirm.disabled = true;
+          editConfirm.textContent = '保存中...';
+          cb(function () {
+            editConfirm.disabled = false;
+            editConfirm.textContent = '保存';
+            closeEdit();
+          });
+        });
 
-      // ---- 删除确认弹窗 ----
-      function openDelete(text, onConfirm) {
-        delText.textContent = text || '确定要删除这条记录吗？此操作不可撤销。';
-        onDeleteConfirm = onConfirm;
-        delConfirm.disabled = false;
-        delConfirm.textContent = '确认删除';
-        delOverlay.classList.add('open');
-      }
-
-      function closeDelete() {
-        delOverlay.classList.remove('open');
-        onDeleteConfirm = null;
-      }
-
-      delClose.addEventListener('click', closeDelete);
-      delCancel.addEventListener('click', closeDelete);
-      delOverlay.addEventListener('click', function (e) {
-        if (e.target === delOverlay) closeDelete();
-      });
-
-      delConfirm.addEventListener('click', function () {
-        if (!onDeleteConfirm) return;
-        var cb = onDeleteConfirm;
-        onDeleteConfirm = null;         // 一次性：立即清空，防止二次进入
-        delConfirm.disabled = true;
-        delConfirm.textContent = '删除中...';
-        cb(function () {
+        function openDelete(text, onConfirm) {
+          delText.textContent = text || '确定要删除这条记录吗？此操作不可撤销。';
+          onDeleteConfirm = onConfirm;
           delConfirm.disabled = false;
           delConfirm.textContent = '确认删除';
-          closeDelete();
+          delOverlay.classList.add('open');
+        }
+        function closeDelete() {
+          delOverlay.classList.remove('open');
+          onDeleteConfirm = null;
+        }
+        delClose.addEventListener('click', closeDelete);
+        delCancel.addEventListener('click', closeDelete);
+        delOverlay.addEventListener('click', function (e) {
+          if (e.target === delOverlay) closeDelete();
         });
-      });
+        delConfirm.addEventListener('click', function () {
+          if (!onDeleteConfirm) return;
+          var cb = onDeleteConfirm;
+          onDeleteConfirm = null;
+          delConfirm.disabled = true;
+          delConfirm.textContent = '删除中...';
+          cb(function () {
+            delConfirm.disabled = false;
+            delConfirm.textContent = '确认删除';
+            closeDelete();
+          });
+        });
 
-      return {
-        openEdit: openEdit,
-        closeEdit: closeEdit,
-        openDelete: openDelete,
-        closeDelete: closeDelete,
-      };
-    })();
+        window.Modal = {
+          openEdit: openEdit,
+          closeEdit: closeEdit,
+          openDelete: openDelete,
+          closeDelete: closeDelete
+        };
+      }
 
+      function initTplModal() {
+        var overlay = document.getElementById('tplModal');
+        var titleEl = document.getElementById('tplModalTitle');
+        var listEl = document.getElementById('tplList');
+        var newNameInput = document.getElementById('tplNewName');
+        var addBtn = document.getElementById('tplAddBtn');
+        var copySource = document.getElementById('tplCopySource');
+        var copyBtn = document.getElementById('tplCopyBtn');
+        var closeBtn = document.getElementById('tplCloseBtn');
+        var closeX = document.getElementById('tplModalClose');
+        var currentMachineId = null;
 
+        function open(machineId, machineCode) {
+          currentMachineId = machineId;
+          titleEl.textContent = '点检模板 - ' + machineCode;
+          overlay.classList.add('open');
+          loadMachines();
+          loadTemplates();
+        }
+        function close() {
+          overlay.classList.remove('open');
+          currentMachineId = null;
+        }
+        async function loadMachines() {
+          try {
+            var machines = await API.machines.getAll();
+            copySource.innerHTML = '<option value="">请选择源设备</option>' +
+              machines.filter(function (m) { return m.id !== currentMachineId; })
+                .map(function (m) { return '<option value="' + m.id + '">' + esc(m.machine_code) + ' ' + esc(m.machine_name) + '</option>'; })
+                .join('');
+          } catch (e) { console.error(e); }
+        }
+        async function loadTemplates() {
+          try {
+            var items = await API.inspectionTemplates.getAll(currentMachineId);
+            renderList(items);
+          } catch (err) {
+            window.showToast('加载模板失败: ' + err.message, 'error');
+          }
+        }
+        function renderList(items) {
+          if (!items.length) {
+            listEl.innerHTML = '<div class="empty-state" style="padding:24px 0;"><divdiv></div>';
+            return;
+          }
+          listEl.innerHTML = items.map(function (item, i) {
+            return '<div class="tpl-item" data-id="' + item.id + '">' +
+              '<span class="tpl-order">' + (i + 1) + '</span>' +
+              '<span class="tpl-name">' + esc(item.item_name) + '</span>' +
+              '<span class="tpl-actions">' +
+                '<button class="btn btn-ghost" onclick="TplModal.editItem(' + item.id + ',\'' + escAttr(item.item_name) + '\')">编辑</button>' +
+                '<button class="btn btn-danger" onclick="TplModal.deleteItem(' + item.id + ')">删除</button>' +
+              '</span>' +
+            '</div>';
+          }).join('');
+        }
 
+        addBtn.addEventListener('click class="empty-text">暂无点检项目</', async function () {
+          var name = newNameInput.value.trim();
+          if (!name) { window.showToast('请输入项目名称', 'warning'); newNameInput.focus(); return; }
+          try {
+            await API.inspectionTemplates.create({ machine_id: currentMachineId, item_name: name });
+            newNameInput.value = '';
+            loadTemplates();
+            window.showToast('添加成功', 'success');
+          } catch (err) { window.showToast('添加失败: ' + err.message, 'error'); }
+        });
+        newNameInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+        });
+
+        function editItem(id, oldName) {
+          var newName = prompt('修改点检项目名称：', oldName);
+          if (newName === null || newName.trim() === '' || newName.trim() === oldName) return;
+          API.inspectionTemplates.update(id, { item_name: newName.trim() })
+            .then(function () { loadTemplates(); window.showToast('更新成功', 'success'); })
+            .catch(function (err) { window.showToast('更新失败: ' + err.message, 'error'); });
+        }
+        function deleteItem(id) {
+          if (!confirm('确定删除这个点检项目吗？')) return;
+          API.inspectionTemplates.remove(id)
+            .then(function () { loadTemplates(); window.showToast('删除成功', 'success'); })
+            .catch(function (err) { window.showToast('删除失败: ' + err.message, 'error'); });
+        }
+
+        copyBtn.addEventListener('click', async function () {
+          var sourceId = parseInt(copySource.value, 10);
+          if (!sourceId) { window.showToast('请选择源设备', 'warning'); return; }
+          if (!confirm('复制将覆盖当前设备已有的点检模板，确定继续？')) return;
+          try {
+            var result = await API.inspectionTemplates.copy(sourceId, currentMachineId);
+            loadTemplates();
+            window.showToast('已复制 ' + result.copied + ' 个项目', 'success');
+          } catch (err) { window.showToast('复制失败: ' + err.message, 'error'); }
+        });
+
+        closeBtn.addEventListener('click', close);
+        closeX.addEventListener('click', close);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+        function esc(s) { var e = document.createElement('span'); e.textContent = s == null ? '' : s; return e.innerHTML; }
+        function escAttr(s) { return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+        window.TplModal = {
+          open: open,
+          close: close,
+          editItem: editItem,
+          deleteItem: deleteItem
+        };
+      }
+
+      function initInspDetailModal() {
+        var overlay = document.getElementById('inspDetailModal');
+        var titleEl = document.getElementById('inspDetailTitle');
+        var bodyEl = document.getElementById('inspDetailBody');
+        var closeBtn = document.getElementById('inspDetailCloseBtn');
+        var closeX = document.getElementById('inspDetailClose');
+
+        function open(record) {
+          titleEl.textContent = '点检详情 - ' + (record.machine_code || '') + ' ' + (record.created_at || '');
+          var html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text-muted);">点检人：' + esc(record.operator_name || '-') + '</div>';
+          if (record.details && record.details.length) {
+            html += record.details.map(function (d) {
+              var tagCls = d.result === '正常' ? 'tag-green' : 'tag-red';
+              var noteHtml = d.note ? '<span class="detail-note">(' + esc(d.note) + ')</span>' : '';
+              return '<div class="insp-detail-item"><span class="detail-name">' + esc(d.item_name) + '</span><span class="tag ' + tagCls + '">' + esc(d.result) + '</span>' + noteHtml + '</div>';
+            }).join('');
+          } else {
+            html += '<div style="color:var(--text-muted);font-size:13px;">无明细数据</div>';
+          }
+          if (record.remark) {
+            html += '<div style="margin-top:12px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);">备注：' + esc(record.remark) + '</div>';
+          }
+          bodyEl.innerHTML = html;
+          overlay.classList.add('open');
+        }
+        function close() {
+          overlay.classList.remove('open');
+        }
+
+        closeBtn.addEventListener('click', close);
+        closeX.addEventListener('click', close);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+        function esc(s) { var e = document.createElement('span'); e.textContent = s == null ? '' : s; return e.innerHTML; }
+
+        window.InspDetailModal = { open: open, close: close };
+      }
 
     })();
   </script>

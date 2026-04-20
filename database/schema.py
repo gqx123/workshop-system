@@ -73,6 +73,33 @@ CREATE TABLE IF NOT EXISTS fault_records (
 );
 
 -- ============================================================
+-- 点检模板表
+-- 每台设备配置自己的点检项目列表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS inspection_templates (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_id      INTEGER NOT NULL,                           -- 关联机床 ID
+    item_name       TEXT    NOT NULL,                            -- 点检项目名称，如"检查润滑油位"
+    item_order      INTEGER NOT NULL DEFAULT 0,                  -- 排序序号
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (machine_id) REFERENCES machines(id)
+);
+
+-- ============================================================
+-- 点检记录表
+-- 每次点检提交一条记录
+-- ============================================================
+CREATE TABLE IF NOT EXISTS inspection_records (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_id      INTEGER NOT NULL,                           -- 关联机床 ID
+    operator_name   TEXT    NOT NULL DEFAULT '',                 -- 点检人姓名
+    remark          TEXT    NOT NULL DEFAULT '',                 -- 总备注
+    details         TEXT    NOT NULL DEFAULT '[]',               -- 点检明细 JSON
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (machine_id) REFERENCES machines(id)
+);
+
+-- ============================================================
 -- 索引：加速常见查询
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_production_machine   ON production_records(machine_id);
@@ -82,4 +109,8 @@ CREATE INDEX IF NOT EXISTS idx_maintenance_time     ON maintenance_records(creat
 CREATE INDEX IF NOT EXISTS idx_fault_machine        ON fault_records(machine_id);
 CREATE INDEX IF NOT EXISTS idx_fault_status         ON fault_records(status);
 CREATE INDEX IF NOT EXISTS idx_fault_time           ON fault_records(created_at);
+CREATE INDEX IF NOT EXISTS idx_insp_tpl_machine     ON inspection_templates(machine_id);
+CREATE INDEX IF NOT EXISTS idx_insp_tpl_order       ON inspection_templates(machine_id, item_order);
+CREATE INDEX IF NOT EXISTS idx_insp_rec_machine     ON inspection_records(machine_id);
+CREATE INDEX IF NOT EXISTS idx_insp_rec_time        ON inspection_records(created_at);
 """
