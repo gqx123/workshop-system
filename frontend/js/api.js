@@ -259,7 +259,7 @@
       },
     },
 
-    // ---- 点检模板 ----
+        // ---- 点检模板 ----
     inspectionTemplates: {
       /** 获取某设备的点检模板 */
       getAll: function (machineId) {
@@ -284,7 +284,15 @@
           target_machine_id: targetMachineId,
         });
       },
+      /** 批量导入CSV（覆盖模式） */
+      importCSV: function (machineId, items) {
+        return post('/api/inspection-templates/import', {
+          machine_id: machineId,
+          items: items,
+        });
+      },
     },
+
 
     // ---- 点检记录 ----
     inspection: {

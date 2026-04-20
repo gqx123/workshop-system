@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, jsonify, request
 from services.inspection_service import (
     get_templates, create_template, update_template,
-    delete_template, copy_templates,
+    delete_template, copy_templates, import_templates,
     create_inspection, list_inspections,
     get_inspection_by_id, delete_inspection,
 )
@@ -86,6 +86,27 @@ def copy_template():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@inspection_bp.route("/api/inspection-templates/import", methods=["POST"])
+def import_template():
+    """POST /api/inspection-templates/import — 批量导入点检模板（覆盖模式）"""
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({"error": "请求体必须为 JSON"}), 400
+        machine_id = data.get("machine_id")
+        items = data.get("items", [])
+        if not machine_id:
+            return jsonify({"error": "缺少 machine_id"}), 400
+        if not items:
+            return jsonify({"error": "没有可导入的项目"}), 400
+        count = import_templates(machine_id, items)
+        return jsonify({"success": True, "imported": count})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 
 # ================================================================
