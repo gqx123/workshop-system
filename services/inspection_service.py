@@ -172,3 +172,41 @@ def delete_inspection(record_id: int) -> bool:
         "DELETE FROM inspection_records WHERE id = ?", (record_id,)
     )
     return rows > 0
+
+def import_templates(machine_id: int, items: list[str]) -> int:
+    """
+    批量导入点检模板（覆盖模式）。
+    先清空该设备已有模板，再按顺序插入新项目。
+
+    Args:
+        machine_id: 设备 ID
+        items: 点检项目名称列表
+
+    Returns:
+        导入的项目数量
+    """
+    if not machine_id:
+        raise ValueError("缺少 machine_id")
+
+    # 清空已有模板
+    db.execute_write(
+        "DELETE FROM inspection_templates WHERE machine_id = ?",
+        (machine_id,),
+    )
+
+    # 过滤空行
+    valid_items = [name.strip() for name in items if name.strip()]
+    if not valid_items:
+        raise ValueError("CSV 中没有有效的点检项目")
+
+    # 批量插入
+    params_list = [
+        (machine_id, name, i + 1)
+        for i, name in enumerate(valid_items)
+    ]
+    db.execute_many(
+        "INSERT INTO inspection_templates (machine_id, item_name, item_order) "
+        "VALUES (?, ?, ?)",
+        params_list,
+    )
+    return len(params_list)
