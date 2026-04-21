@@ -1,23 +1,20 @@
 """点检模板与点检记录相关路由"""
-import json
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, make_response
 from services.inspection_service import (
     get_templates, create_template, update_template,
     delete_template, copy_templates, import_templates,
     create_inspection, list_inspections,
     get_inspection_by_id, delete_inspection,
 )
+import openpyxl
+from openpyxl.utils import get_column_letter
+from io import BytesIO
 
 inspection_bp = Blueprint("inspection", __name__)
 
 
-# ================================================================
-# 点检模板 API
-# ================================================================
-
 @inspection_bp.route("/api/inspection-templates", methods=["GET"])
 def query_templates():
-    """GET /api/inspection-templates?machine_id= — 获取某设备的点检模板"""
     try:
         machine_id = request.args.get("machine_id", type=int)
         if not machine_id:
@@ -29,7 +26,6 @@ def query_templates():
 
 @inspection_bp.route("/api/inspection-templates", methods=["POST"])
 def add_template():
-    """POST /api/inspection-templates — 新增点检模板项目"""
     try:
         data = request.get_json(silent=True)
         if not data:
@@ -43,8 +39,7 @@ def add_template():
 
 
 @inspection_bp.route("/api/inspection-templates/<int:template_id>", methods=["PUT"])
-def edit_template(template_id: int):
-    """PUT /api/inspection-templates/<id> — 更新点检模板项目"""
+def edit_template(template_id):
     try:
         data = request.get_json(silent=True)
         if not data:
@@ -58,8 +53,7 @@ def edit_template(template_id: int):
 
 
 @inspection_bp.route("/api/inspection-templates/<int:template_id>", methods=["DELETE"])
-def remove_template(template_id: int):
-    """DELETE /api/inspection-templates/<id> — 删除点检模板项目"""
+def remove_template(template_id):
     try:
         ok = delete_template(template_id)
         if not ok:
@@ -71,7 +65,6 @@ def remove_template(template_id: int):
 
 @inspection_bp.route("/api/inspection-templates/copy", methods=["POST"])
 def copy_template():
-    """POST /api/inspection-templates/copy — 从其他设备复制模板"""
     try:
         data = request.get_json(silent=True)
         if not data:
@@ -87,9 +80,9 @@ def copy_template():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @inspection_bp.route("/api/inspection-templates/import", methods=["POST"])
 def import_template():
-    """POST /api/inspection-templates/import — 批量导入点检模板（覆盖模式）"""
     try:
         data = request.get_json(silent=True)
         if not data:
@@ -108,14 +101,8 @@ def import_template():
         return jsonify({"error": str(e)}), 500
 
 
-
-# ================================================================
-# 点检记录 API
-# ================================================================
-
 @inspection_bp.route("/api/inspection", methods=["POST"])
 def add_inspection():
-    """POST /api/inspection — 提交点检记录"""
     try:
         data = request.get_json(silent=True)
         if not data:
@@ -130,7 +117,6 @@ def add_inspection():
 
 @inspection_bp.route("/api/inspection", methods=["GET"])
 def query_inspections():
-    """GET /api/inspection?machine_id= — 查询点检记录"""
     try:
         machine_id = request.args.get("machine_id", type=int)
         return jsonify(list_inspections(machine_id=machine_id))
@@ -139,8 +125,7 @@ def query_inspections():
 
 
 @inspection_bp.route("/api/inspection/<int:record_id>", methods=["GET"])
-def get_inspection(record_id: int):
-    """GET /api/inspection/<id> — 获取单条点检记录"""
+def get_inspection(record_id):
     try:
         r = get_inspection_by_id(record_id)
         if r is None:
@@ -151,8 +136,7 @@ def get_inspection(record_id: int):
 
 
 @inspection_bp.route("/api/inspection/<int:record_id>", methods=["DELETE"])
-def remove_inspection(record_id: int):
-    """DELETE /api/inspection/<id> — 删除点检记录"""
+def remove_inspection(record_id):
     try:
         ok = delete_inspection(record_id)
         if not ok:
@@ -160,3 +144,79 @@ def remove_inspection(record_id: int):
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@inspection_bp.route("/api/inspection/export", methods=["GET"])
+def export_inspections():
+    try:
+        machine_id = request.args.get("machine_id", type=int)
+        records = list_inspections(machine_id=machine_id, limit=1000)
+        if not records:
+            return jsonify({"error": "没有可导出的点检记录"}), 400
+
+        # 按机床分组
+        grouped = {}
+        for r in records:
+            key = r.get("machine_code", "未知机床")
+            if key not in grouped:
+                grouped[key] = []
+            grouped[key].append(r)
+
+        # 创建 Excel
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+
+        for machine_code, recs in grouped.items():
+            sheet_name = machine_code[:31]
+            ws = wb.create_sheet(title=sheet_name)
+
+            # 收集所有点检项目名称（取第一次记录的明细顺序）
+            all_items = []
+            if recs[0].get("details"):
+                for d in recs[0]["details"]:
+                    all_items.append(d.get("item_name", ""))
+
+            # 第一行：点检人
+            ws.cell(row=1, column=1, value="点检人")
+            # 第二行：日期
+            ws.cell(row=2, column=1, value="日期")
+
+            # 从第三行开始：点检项目
+            for i, item_name in enumerate(all_items):
+                ws.cell(row=i + 3, column=1, value=item_name)
+
+            # 从第二列开始，每列是一次点检记录
+            for col_idx, rec in enumerate(recs):
+                col = col_idx + 2
+
+                # 点检人
+                ws.cell(row=1, column=col, value=rec.get("operator_name", ""))
+
+                # 日期
+                ws.cell(row=2, column=col, value=rec.get("created_at", ""))
+
+                # 点检结果
+                details = rec.get("details", [])
+                for i, d in enumerate(details):
+                    result = d.get("result", "")
+                    note = d.get("note", "")
+                    if note:
+                        result = result + "（" + note + "）"
+                    ws.cell(row=i + 3, column=col, value=result)
+
+            # 设置列宽
+            ws.column_dimensions['A'].width = 45
+            for ci in range(len(recs)):
+                ws.column_dimensions[get_column_letter(ci + 2)].width = 25
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        resp = make_response(output.read())
+        resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        resp.headers["Content-Disposition"] = "attachment; filename=inspection_records.xlsx"
+        return resp
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS machines (
     machine_type    TEXT    NOT NULL DEFAULT '',
     location        TEXT    NOT NULL DEFAULT '',
     status          TEXT    NOT NULL DEFAULT '正常',
+    operator_name   TEXT    NOT NULL DEFAULT '',
     created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
