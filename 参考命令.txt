@@ -1,5 +1,5 @@
 py -m pip install --no-index --find-links=packages flask qrcode pillow安装环境
-py -m pip install openpyx安装excel库
+py -m pip install openpyxl安装excel库
 
 py tools/generate_qrcodes.py二维码生成
 py run.py运行服务器
