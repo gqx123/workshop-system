@@ -215,19 +215,24 @@ class Database:
 
     def seed_machines(self) -> None:
         """
-        如果 machines 表为空，插入 config.py 中的预置机床数据。
-
-        Raises:
-            DatabaseError: 插入失败时抛出
+        仅在首次启动时插入预置机床数据。
+        通过 system_config 表中的标记判断是否已初始化。
         """
-        count_row = self.execute_one("SELECT COUNT(*) AS cnt FROM machines")
-        if count_row and count_row["cnt"] > 0:
-            logger.info("machines 表已有 %d 条记录，跳过预置", count_row["cnt"])
+        # 检查是否已经初始化过
+        row = self.execute_one(
+            "SELECT value FROM system_config WHERE key = 'seed_done'"
+        )
+        if row and row["value"] == "yes":
+            logger.info("预置数据已初始化过，跳过")
             return
 
         from config import DEFAULT_MACHINES
         if not DEFAULT_MACHINES:
             logger.warning("DEFAULT_MACHINES 为空，无预置数据")
+            # 即使没有预置数据，也标记为已初始化
+            self.execute_write(
+                "INSERT OR REPLACE INTO system_config (key, value) VALUES ('seed_done', 'yes')"
+            )
             return
 
         conn = self.get_connection()
@@ -237,6 +242,10 @@ class Database:
                 "VALUES (?, ?, ?, ?)",
                 DEFAULT_MACHINES,
             )
+            # 标记为已初始化
+            conn.execute(
+                "INSERT OR REPLACE INTO system_config (key, value) VALUES ('seed_done', 'yes')"
+            )
             conn.commit()
             logger.info("预置 %d 台机床数据完成", len(DEFAULT_MACHINES))
         except sqlite3.Error as e:
@@ -245,6 +254,7 @@ class Database:
             raise DatabaseError(f"预置机床数据失败: {e}") from e
         finally:
             conn.close()
+
 
     # ----------------------------------------------------------------
     # 辅助方法
