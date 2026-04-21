@@ -30,35 +30,30 @@ def get_machine_by_code(code: str) -> dict | None:
     )
 
 
-def create_machine(data: dict) -> int:
-    """新增机床"""
+def create_machine(data):
     required = ["machine_code", "machine_name"]
     for f in required:
         if f not in data or not data[f]:
             raise ValueError(f"缺少必填字段: {f}")
 
     db.execute_write(
-        "INSERT INTO machines (machine_code, machine_name, machine_type, location, status) "
-        "VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO machines (machine_code, machine_name, machine_type, location, status, operator_name) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
         (
             data["machine_code"],
             data["machine_name"],
             data.get("machine_type", ""),
             data.get("location", ""),
             data.get("status", "正常"),
+            data.get("operator_name", ""),
         ),
     )
     row = db.execute_one("SELECT last_insert_rowid() AS id")
     return row["id"]
 
 
-
-def update_machine(machine_id: int, data: dict) -> bool:
-    """
-    更新机床信息。
-    只更新 data 中存在的字段。
-    """
-    allowed = {"machine_code", "machine_name", "machine_type", "location", "status"}
+def update_machine(machine_id, data):
+    allowed = {"machine_code", "machine_name", "machine_type", "location", "status", "operator_name"}
     updates, params = [], []
     for key, val in data.items():
         if key in allowed:
@@ -71,6 +66,7 @@ def update_machine(machine_id: int, data: dict) -> bool:
         f"UPDATE machines SET {', '.join(updates)} WHERE id = ?", tuple(params)
     )
     return rows > 0
+
 
 
 def update_machine_status(machine_id: int, status: str) -> bool:

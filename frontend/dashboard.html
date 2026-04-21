@@ -1,168 +1,410 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>车间管理系统</title>
-  <link rel="stylesheet" href="/frontend/css/variables.css">
-  <link rel="stylesheet" href="/frontend/css/dashboard.css">
-  <style>
-    .nav-badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace; line-height: 18px; text-align: center; color: #fff; background: var(--red); border-radius: 9px; display: none; }
-    .nav-badge.visible { display: inline-block; }
-    .tpl-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; max-height: 320px; overflow-y: auto; }
-    .tpl-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-    .tpl-item .tpl-order { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text-muted); background: var(--surface); border-radius: 50%; flex-shrink: 0; }
-    .tpl-item .tpl-name { flex: 1; font-size: 13px; color: var(--text); }
-    .tpl-item .tpl-actions { display: flex; gap: 4px; flex-shrink: 0; }
-    .tpl-item .tpl-actions button { padding: 3px 8px; font-size: 11px; }
-    .tpl-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
-    .tpl-add-row input { flex: 1; }
-    .tpl-copy-row { display: flex; gap: 8px; align-items: center; padding: 12px; background: var(--surface-2); border-radius: var(--radius-sm); margin-bottom: 16px; }
-    .tpl-copy-row label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-    .tpl-copy-row select { flex: 1; }
-    .insp-detail-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm); margin-bottom: 6px; }
-    .insp-detail-item .detail-name { flex: 1; font-size: 13px; }
-    .insp-detail-item .detail-note { font-size: 12px; color: var(--text-muted); margin-left: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车间管理系统</title>
+    <link rel="stylesheet" href="/frontend/css/variables.css">
+    <link rel="stylesheet" href="/frontend/css/dashboard.css">
+    <style>
+        .nav-badge {
+            margin-left: auto;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            line-height: 18px;
+            text-align: center;
+            color: #fff;
+            background: var(--red);
+            border-radius: 9px;
+            display: none;
+        }
+
+        .nav-badge.visible {
+            display: inline-block;
+        }
+
+        .tpl-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .tpl-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .tpl-item .tpl-order {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: var(--surface);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .tpl-item .tpl-name {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .tpl-item .tpl-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .tpl-item .tpl-actions button {
+            padding: 3px 8px;
+            font-size: 11px;
+        }
+
+        .tpl-add-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tpl-add-row input {
+            flex: 1;
+        }
+
+        .tpl-copy-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 12px;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+        }
+
+        .tpl-copy-row label {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .tpl-copy-row select {
+            flex: 1;
+        }
+
+        .insp-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+        }
+
+        .insp-detail-item .detail-name {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .insp-detail-item .detail-note {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: 10px;
+        }
+    </style>
 </head>
+
 <body>
 
-  <div class="modal-overlay" id="editModal">
-    <div class="modal">
-      <div class="modal-header"><span class="modal-title" id="editModalTitle">编辑</span><button class="modal-close" id="editModalClose">&times;</button></div>
-      <div class="modal-body" id="editModalBody"></div>
-      <div class="modal-footer"><button class="btn btn-ghost" id="editCancelBtn">取消</button><button class="btn btn-primary" id="editConfirmBtn">保存</button></div>
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title" id="editModalTitle">编辑</span><button class="modal-close"
+                    id="editModalClose">&times;</button></div>
+            <div class="modal-body" id="editModalBody"></div>
+            <div class="modal-footer"><button class="btn btn-ghost" id="editCancelBtn">取消</button><button
+                    class="btn btn-primary" id="editConfirmBtn">保存</button></div>
+        </div>
     </div>
-  </div>
 
-  <div class="modal-overlay" id="deleteModal">
-    <div class="modal" style="max-width:380px;">
-      <div class="modal-header"><span class="modal-title">确认删除</span><button class="modal-close" id="deleteModalClose">&times;</button></div>
-      <div class="modal-body"><p id="deleteModalText" style="font-size:14px;color:var(--text-muted);">确定要删除这条记录吗？此操作不可撤销。</p></div>
-      <div class="modal-footer"><button class="btn btn-ghost" id="deleteCancelBtn">取消</button><button class="btn btn-danger" id="deleteConfirmBtn">确认删除</button></div>
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal" style="max-width:380px;">
+            <div class="modal-header"><span class="modal-title">确认删除</span><button class="modal-close"
+                    id="deleteModalClose">&times;</button></div>
+            <div class="modal-body">
+                <p id="deleteModalText" style="font-size:14px;color:var(--text-muted);">确定要删除这条记录吗？此操作不可撤销。</p>
+            </div>
+            <div class="modal-footer"><button class="btn btn-ghost" id="deleteCancelBtn">取消</button><button
+                    class="btn btn-danger" id="deleteConfirmBtn">确认删除</button></div>
+        </div>
     </div>
-  </div>
 
-  <div class="modal-overlay" id="tplModal">
-    <div class="modal" style="max-width:560px;">
-      <div class="modal-header"><span class="modal-title" id="tplModalTitle">点检模板</span><button class="modal-close" id="tplModalClose">&times;</button></div>
-      <div class="modal-body">
-        <div class="tpl-copy-row">
-          <label>从其他设备复制：</label>
-          <select class="form-select" id="tplCopySource"><option value="">请选择源设备</option></select>
-          <button class="btn btn-primary" id="tplCopyBtn" style="padding:7px 14px;font-size:12px;">复制</button>
+    <div class="modal-overlay" id="tplModal">
+        <div class="modal" style="max-width:560px;">
+            <div class="modal-header"><span class="modal-title" id="tplModalTitle">点检模板</span><button
+                    class="modal-close" id="tplModalClose">&times;</button></div>
+            <div class="modal-body">
+                <div class="tpl-copy-row">
+                    <label>从其他设备复制：</label>
+                    <select class="form-select" id="tplCopySource">
+                        <option value="">请选择源设备</option>
+                    </select>
+                    <button class="btn btn-primary" id="tplCopyBtn" style="padding:7px 14px;font-size:12px;">复制</button>
+                </div>
+                <div class="tpl-copy-row">
+                    <label>导入CSV文件：</label>
+                    <input type="file" id="tplImportFile" accept=".csv,.txt" style="display:none;">
+                    <button class="btn btn-ghost" id="tplImportBtn"
+                        style="padding:7px 14px;font-size:12px;">选择文件</button>
+                    <span id="tplImportName" style="font-size:12px;color:var(--text-muted);flex:1;"></span>
+                    <button class="btn btn-primary" id="tplImportConfirm"
+                        style="padding:7px 14px;font-size:12px;display:none;">导入</button>
+                </div>
+                <div class="tpl-add-row">
+                    <input type="text" class="form-input" id="tplNewName" placeholder="输入新的点检项目名称">
+                    <button class="btn btn-primary" id="tplAddBtn" style="white-space:nowrap;">+ 添加</button>
+                </div>
+                <div class="tpl-list" id="tplList">
+                    <div class="empty-state" style="padding:24px 0;">
+                        <div class="empty-text">暂无点检项目，请添加或从其他设备复制</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-ghost" id="tplCloseBtn">关闭</button></div>
         </div>
-        <div class="tpl-copy-row">
-          <label>导入CSV文件：</label>
-          <input type="file" id="tplImportFile" accept=".csv,.txt" style="display:none;">
-          <button class="btn btn-ghost" id="tplImportBtn" style="padding:7px 14px;font-size:12px;">选择文件</button>
-          <span id="tplImportName" style="font-size:12px;color:var(--text-muted);flex:1;"></span>
-          <button class="btn btn-primary" id="tplImportConfirm" style="padding:7px 14px;font-size:12px;display:none;">导入</button>
-        </div>
-        <div class="tpl-add-row">
-          <input type="text" class="form-input" id="tplNewName" placeholder="输入新的点检项目名称">
-          <button class="btn btn-primary" id="tplAddBtn" style="white-space:nowrap;">+ 添加</button>
-        </div>
-        <div class="tpl-list" id="tplList">
-          <div class="empty-state" style="padding:24px 0;"><div class="empty-text">暂无点检项目，请添加或从其他设备复制</div></div>
-        </div>
-      </div>
-      <div class="modal-footer"><button class="btn btn-ghost" id="tplCloseBtn">关闭</button></div>
     </div>
-  </div>
 
-  <div class="modal-overlay" id="inspDetailModal">
-    <div class="modal" style="max-width:520px;">
-      <div class="modal-header"><span class="modal-title" id="inspDetailTitle">点检详情</span><button class="modal-close" id="inspDetailClose">&times;</button></div>
-      <div class="modal-body" id="inspDetailBody"></div>
-      <div class="modal-footer"><button class="btn btn-ghost" id="inspDetailCloseBtn">关闭</button></div>
+    <div class="modal-overlay" id="inspDetailModal">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header"><span class="modal-title" id="inspDetailTitle">点检详情</span><button
+                    class="modal-close" id="inspDetailClose">&times;</button></div>
+            <div class="modal-body" id="inspDetailBody"></div>
+            <div class="modal-footer"><button class="btn btn-ghost" id="inspDetailCloseBtn">关闭</button></div>
+        </div>
     </div>
-  </div>
 
-  <div class="modal-overlay" id="resolveModal">
-    <div class="modal">
-      <div class="modal-header"><span class="modal-title">解决故障</span><button class="modal-close" id="resolveModalClose">&times;</button></div>
-      <div class="modal-body"><div class="form-group"><label class="form-label">解决方案 <span style="color:var(--red)">*</span></label><textarea class="form-textarea" id="resolveInput" rows="4" placeholder="描述故障的处理方式和结果"></textarea></div></div>
-      <div class="modal-footer"><button class="btn btn-ghost" id="resolveCancelBtn">取消</button><button class="btn btn-primary" id="resolveConfirmBtn">确认解决</button></div>
+    <div class="modal-overlay" id="resolveModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">解决故障</span><button class="modal-close"
+                    id="resolveModalClose">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">解决方案 <span
+                            style="color:var(--red)">*</span></label><textarea class="form-textarea" id="resolveInput"
+                        rows="4" placeholder="描述故障的处理方式和结果"></textarea></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-ghost" id="resolveCancelBtn">取消</button><button
+                    class="btn btn-primary" id="resolveConfirmBtn">确认解决</button></div>
+        </div>
     </div>
-  </div>
 
-  <div class="layout">
-    <nav class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">车间管理系统</div>
-        <div class="logo-sub">Workshop MES</div>
-      </div>
-      <div class="sidebar-nav">
-        <button class="nav-item active" data-panel="overview"><span class="nav-icon">&#9673;</span> 总览</button>
-        <button class="nav-item" data-panel="production"><span class="nav-icon">&#9881;</span> 生产记录</button>
-        <button class="nav-item" data-panel="inspection"><span class="nav-icon">&#9745;</span> 点检记录</button>
-        <button class="nav-item" data-panel="faults"><span class="nav-icon">&#9888;</span> 故障记录<span class="nav-badge" id="faultBadge">0</span></button>
-        <button class="nav-item" data-panel="machines"><span class="nav-icon">&#9638;</span> 机床管理</button>
-        <button class="nav-item logout" id="logoutBtn" style="margin-top:auto;"><span class="nav-icon">&#9099;</span> 登出</button>
-      </div>
-    </nav>
+    <div class="layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">车间管理系统</div>
+                <div class="logo-sub">Workshop MES</div>
+            </div>
+            <div class="sidebar-nav">
+                <button class="nav-item active" data-panel="overview"><span class="nav-icon">&#9673;</span> 总览</button>
+                <button class="nav-item" data-panel="production"><span class="nav-icon">&#9881;</span> 生产记录</button>
+                <button class="nav-item" data-panel="inspection"><span class="nav-icon">&#9745;</span> 点检记录</button>
+                <button class="nav-item" data-panel="faults"><span class="nav-icon">&#9888;</span> 故障记录<span
+                        class="nav-badge" id="faultBadge">0</span></button>
+                <button class="nav-item" data-panel="machines"><span class="nav-icon">&#9638;</span> 机床管理</button>
+                <button class="nav-item logout" id="logoutBtn" style="margin-top:auto;"><span
+                        class="nav-icon">&#9099;</span> 登出</button>
+            </div>
+        </nav>
 
-    <main class="main">
-      <div class="panel active" id="panel-overview">
-        <div class="main-header"><h1 class="page-title">总览</h1></div>
-        <div class="main-body">
-          <div class="stats-grid" id="overviewStats"></div>
-          <h3 style="margin-bottom:14px;font-size:15px;font-weight:600;">今日各机床产量</h3>
-          <div class="machine-grid" id="overviewMachines"></div>
-        </div>
-      </div>
+        <main class="main">
+            <div class="panel active" id="panel-overview">
+                <div class="main-header">
+                    <h1 class="page-title">总览</h1>
+                </div>
+                <div class="main-body">
+                    <div class="stats-grid" id="overviewStats"></div>
+                    <h3 style="margin-bottom:14px;font-size:15px;font-weight:600;">今日各机床产量</h3>
+                    <div class="machine-grid" id="overviewMachines"></div>
+                </div>
+            </div>
 
-      <div class="panel" id="panel-production">
-        <div class="main-header"><h1 class="page-title">生产记录</h1></div>
-        <div class="main-body">
-          <div class="toolbar"><div class="toolbar-group"><select class="form-select" id="prodFilterMachine"><option value="">全部机床</option></select><input type="date" class="form-input" id="prodFilterFrom"><input type="date" class="form-input" id="prodFilterTo"><button class="btn btn-primary" id="prodFilterBtn">查询</button></div></div>
-          <div class="table-wrap"><table><thead><tr><th>时间</th><th>机床</th><th>产品</th><th>批次</th><th>计划</th><th>实际</th><th>不良</th><th>操作人</th><th>操作</th></tr></thead><tbody id="prodTableBody"></tbody></table></div>
-          <div class="loading" id="prodLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
-          <div class="empty-state" id="prodEmpty" style="display:none;"><div class="empty-icon">&#128203;</div><div class="empty-text">暂无生产记录</div></div>
-        </div>
-      </div>
+            <div class="panel" id="panel-production">
+                <div class="main-header">
+                    <h1 class="page-title">生产记录</h1>
+                </div>
+                <div class="main-body">
+                    <div class="toolbar">
+                        <div class="toolbar-group"><select class="form-select" id="prodFilterMachine">
+                                <option value="">全部机床</option>
+                            </select><input type="date" class="form-input" id="prodFilterFrom"><input type="date"
+                                class="form-input" id="prodFilterTo"><button class="btn btn-primary"
+                                id="prodFilterBtn">查询</button></div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>机床</th>
+                                    <th>产品</th>
+                                    <th>批次</th>
+                                    <th>计划</th>
+                                    <th>实际</th>
+                                    <th>不良</th>
+                                    <th>操作人</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prodTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="loading" id="prodLoading" style="display:none;">
+                        <div class="loading-spinner"></div><span>加载中...</span>
+                    </div>
+                    <div class="empty-state" id="prodEmpty" style="display:none;">
+                        <div class="empty-icon">&#128203;</div>
+                        <div class="empty-text">暂无生产记录</div>
+                    </div>
+                </div>
+            </div>
 
-      <div class="panel" id="panel-inspection">
-        <div class="main-header"><h1 class="page-title">点检记录</h1></div>
-        <div class="main-body">
-          <div class="toolbar"><div class="toolbar-group"><select class="form-select" id="inspFilterMachine"><option value="">全部机床</option></select><button class="btn btn-primary" id="inspFilterBtn">查询</button></div></div>
-          <div class="table-wrap"><table><thead><tr><th>时间</th><th>机床</th><th>点检人</th><th>点检结果</th><th>备注</th><th>操作</th></tr></thead><tbody id="inspTableBody"></tbody></table></div>
-          <div class="loading" id="inspLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
-          <div class="empty-state" id="inspEmpty" style="display:none;"><div class="empty-icon">&#9745;</div><div class="empty-text">暂无点检记录</div></div>
-        </div>
-      </div>
+            <div class="panel" id="panel-inspection">
+                <div class="main-header">
+                    <h1 class="page-title">点检记录</h1>
+                </div>
+                <div class="main-body">
+                    <div class="toolbar">
+                        <div class="toolbar-group"><select class="form-select" id="inspFilterMachine">
+                                <option value="">全部机床</option>
+                            </select><button class="btn btn-primary" id="inspFilterBtn">查询</button>
+                            <button class="btn btn-ghost"
+                                id="inspExportBtn">导出Excel</button></div>
+                        </div>
+                        <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>机床</th>
+                                    <th>点检人</th>
+                                    <th>点检结果</th>
+                                    <th>备注</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inspTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="loading" id="inspLoading" style="display:none;">
+                        <div class="loading-spinner"></div><span>加载中...</span>
+                    </div>
+                    <div class="empty-state" id="inspEmpty" style="display:none;">
+                        <div class="empty-icon">&#9745;</div>
+                        <div class="empty-text">暂无点检记录</div>
+                    </div>
+                </div>
+            </div>
 
-      <div class="panel" id="panel-faults">
-        <div class="main-header"><h1 class="page-title">故障记录</h1></div>
-        <div class="main-body">
-          <div class="toolbar"><div class="toolbar-group"><select class="form-select" id="faultFilterStatus"><option value="">全部状态</option><option value="待处理">待处理</option><option value="已解决">已解决</option></select><button class="btn btn-primary" id="faultFilterBtn">查询</button></div></div>
-          <div class="table-wrap"><table><thead><tr><th>时间</th><th>机床</th><th>类型</th><th>严重程度</th><th>描述</th><th>状态</th><th>上报人</th><th>操作</th></tr></thead><tbody id="faultTableBody"></tbody></table></div>
-          <div class="loading" id="faultLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
-          <div class="empty-state" id="faultEmpty" style="display:none;"><div class="empty-icon">&#9888;</div><div class="empty-text">暂无故障记录</div></div>
-        </div>
-      </div>
+            <div class="panel" id="panel-faults">
+                <div class="main-header">
+                    <h1 class="page-title">故障记录</h1>
+                </div>
+                <div class="main-body">
+                    <div class="toolbar">
+                        <div class="toolbar-group"><select class="form-select" id="faultFilterStatus">
+                                <option value="">全部状态</option>
+                                <option value="待处理">待处理</option>
+                                <option value="已解决">已解决</option>
+                            </select><button class="btn btn-primary" id="faultFilterBtn">查询</button></div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>机床</th>
+                                    <th>类型</th>
+                                    <th>严重程度</th>
+                                    <th>描述</th>
+                                    <th>状态</th>
+                                    <th>上报人</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faultTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="loading" id="faultLoading" style="display:none;">
+                        <div class="loading-spinner"></div><span>加载中...</span>
+                    </div>
+                    <div class="empty-state" id="faultEmpty" style="display:none;">
+                        <div class="empty-icon">&#9888;</div>
+                        <div class="empty-text">暂无故障记录</div>
+                    </div>
+                </div>
+            </div>
 
-      <div class="panel" id="panel-machines">
-        <div class="main-header"><h1 class="page-title">机床管理</h1></div>
-        <div class="main-body">
-          <div class="toolbar"><div class="toolbar-group"><button class="btn btn-primary" onclick="DashMachines.openCreateModal()">+ 新增机床</button></div></div>
-          <div class="table-wrap"><table><thead><tr><th>编号</th><th>名称</th><th>类型</th><th>位置</th><th>状态</th><th>操作</th></tr></thead><tbody id="machineTableBody"></tbody></table></div>
-          <div class="loading" id="machineLoading" style="display:none;"><div class="loading-spinner"></div><span>加载中...</span></div>
-          <div class="empty-state" id="machineEmpty" style="display:none;"><div class="empty-icon">&#9638;</div><div class="empty-text">暂无机床数据，点击上方按钮新增</div></div>
-        </div>
-      </div>
-    </main>
-  </div>
+            <div class="panel" id="panel-machines">
+                <div class="main-header">
+                    <h1 class="page-title">机床管理</h1>
+                </div>
+                <div class="main-body">
+                    <div class="toolbar">
+                        <div class="toolbar-group"><button class="btn btn-primary"
+                                onclick="DashMachines.openCreateModal()">+ 新增机床</button></div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>编号</th>
+                                    <th>名称</th>
+                                    <th>类型</th>
+                                    <th>位置</th>
+                                    <th>状态</th>
+                                    <th>操作人员</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="machineTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="loading" id="machineLoading" style="display:none;">
+                        <div class="loading-spinner"></div><span>加载中...</span>
+                    </div>
+                    <div class="empty-state" id="machineEmpty" style="display:none;">
+                        <div class="empty-icon">&#9638;</div>
+                        <div class="empty-text">暂无机床数据，点击上方按钮新增</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
-  <div class="toast-container" id="toastContainer"></div>
+    <div class="toast-container" id="toastContainer"></div>
 
-  <script src="/frontend/js/api.js"></script>
-  <script src="/frontend/js/dash-overview.js"></script>
-  <script src="/frontend/js/dash-production.js"></script>
-  <script src="/frontend/js/dash-inspection.js"></script>
-  <script src="/frontend/js/dash-faults.js"></script>
-  <script src="/frontend/js/dash-machines.js"></script>
-  <script src="/frontend/js/dashboard-main.js"></script>
+    <script src="/frontend/js/api.js"></script>
+    <script src="/frontend/js/dash-overview.js"></script>
+    <script src="/frontend/js/dash-production.js"></script>
+    <script src="/frontend/js/dash-inspection.js"></script>
+    <script src="/frontend/js/dash-faults.js"></script>
+    <script src="/frontend/js/dash-machines.js"></script>
+    <script src="/frontend/js/dashboard-main.js"></script>
 </body>
+
 </html>

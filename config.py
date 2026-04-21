@@ -26,7 +26,7 @@ ADMINS = {
 # 二维码
 QR_DIR = os.path.join(BASE_DIR, "qrcodes")
 # 二维码中的基础URL（局域网IP，根据实际修改）
-BASE_URL = "http://"
+BASE_URL = "http://192.168.13.99:5000"
 
 # 预置机床（编号, 名称, 类型, 位置）
 DEFAULT_MACHINES = [

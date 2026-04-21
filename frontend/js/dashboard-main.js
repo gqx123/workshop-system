@@ -61,100 +61,141 @@
       window.location.href = '/logout';
     }
   });
+  // 编辑弹窗
+  (function () {
+    var overlay = document.getElementById('editModal');
+    var titleEl = document.getElementById('editModalTitle');
+    var bodyEl = document.getElementById('editModalBody');
+    var confirmBtn = document.getElementById('editConfirmBtn');
+    var cancelBtn = document.getElementById('editCancelBtn');
+    var closeBtn = document.getElementById('editModalClose');
+    var callback = null;
 
-  initModal();
-  initTplModal();
-  initInspDetailModal();
-
-  function initModal() {
-    var editOverlay = document.getElementById('editModal');
-    var editTitle = document.getElementById('editModalTitle');
-    var editBody = document.getElementById('editModalBody');
-    var editConfirm = document.getElementById('editConfirmBtn');
-    var editCancel = document.getElementById('editCancelBtn');
-    var editClose = document.getElementById('editModalClose');
-    var delOverlay = document.getElementById('deleteModal');
-    var delText = document.getElementById('deleteModalText');
-    var delConfirm = document.getElementById('deleteConfirmBtn');
-    var delCancel = document.getElementById('deleteCancelBtn');
-    var delClose = document.getElementById('deleteModalClose');
-    var onEditConfirm = null;
-    var onDeleteConfirm = null;
-
-    function openEdit(title, bodyHTML, onConfirm) {
-      editTitle.textContent = title;
-      editBody.innerHTML = bodyHTML;
-      onEditConfirm = onConfirm;
-      editConfirm.disabled = false;
-      editConfirm.textContent = '保存';
-      editOverlay.classList.add('open');
+    function openEdit(title, html, onConfirm) {
+      titleEl.textContent = title;
+      bodyEl.innerHTML = html;
+      callback = onConfirm;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '保存';
+      overlay.classList.add('open');
     }
 
     function closeEdit() {
-      editOverlay.classList.remove('open');
-      onEditConfirm = null;
+      overlay.classList.remove('open');
+      callback = null;
     }
 
-    editClose.addEventListener('click', closeEdit);
-    editCancel.addEventListener('click', closeEdit);
-    editOverlay.addEventListener('click', function (e) {
-      if (e.target === editOverlay) closeEdit();
+    closeBtn.addEventListener('click', closeEdit);
+    cancelBtn.addEventListener('click', closeEdit);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeEdit();
     });
 
-    editConfirm.addEventListener('click', function () {
-      if (!onEditConfirm) return;
-      var cb = onEditConfirm;
-      onEditConfirm = null;
-      editConfirm.disabled = true;
-      editConfirm.textContent = '保存中...';
+    confirmBtn.addEventListener('click', function () {
+      if (!callback) return;
+      var cb = callback;
+      callback = null;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '保存中...';
       cb(function () {
-        editConfirm.disabled = false;
-        editConfirm.textContent = '保存';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '保存';
         closeEdit();
       });
     });
 
+    window.Modal = window.Modal || {};
+    window.Modal.openEdit = openEdit;
+    window.Modal.closeEdit = closeEdit;
+  })();
+
+  // 删除确认弹窗
+  (function () {
+    var overlay = document.getElementById('deleteModal');
+    var textEl = document.getElementById('deleteModalText');
+    var confirmBtn = document.getElementById('deleteConfirmBtn');
+    var cancelBtn = document.getElementById('deleteCancelBtn');
+    var closeBtn = document.getElementById('deleteModalClose');
+    var callback = null;
+
     function openDelete(text, onConfirm) {
-      delText.textContent = text || '确定要删除这条记录吗？此操作不可撤销。';
-      onDeleteConfirm = onConfirm;
-      delConfirm.disabled = false;
-      delConfirm.textContent = '确认删除';
-      delOverlay.classList.add('open');
+      textEl.textContent = text || '确定要删除这条记录吗？此操作不可撤销。';
+      callback = onConfirm;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '确认删除';
+      overlay.classList.add('open');
     }
 
     function closeDelete() {
-      delOverlay.classList.remove('open');
-      onDeleteConfirm = null;
+      overlay.classList.remove('open');
+      callback = null;
     }
 
-    delClose.addEventListener('click', closeDelete);
-    delCancel.addEventListener('click', closeDelete);
-    delOverlay.addEventListener('click', function (e) {
-      if (e.target === delOverlay) closeDelete();
+    closeBtn.addEventListener('click', closeDelete);
+    cancelBtn.addEventListener('click', closeDelete);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeDelete();
     });
 
-    delConfirm.addEventListener('click', function () {
-      if (!onDeleteConfirm) return;
-      var cb = onDeleteConfirm;
-      onDeleteConfirm = null;
-      delConfirm.disabled = true;
-      delConfirm.textContent = '删除中...';
+    confirmBtn.addEventListener('click', function () {
+      if (!callback) return;
+      var cb = callback;
+      callback = null;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '删除中...';
       cb(function () {
-        delConfirm.disabled = false;
-        delConfirm.textContent = '确认删除';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '确认删除';
         closeDelete();
       });
     });
 
-    window.Modal = {
-      openEdit: openEdit,
-      closeEdit: closeEdit,
-      openDelete: openDelete,
-      closeDelete: closeDelete
-    };
-  }
+    window.Modal.openDelete = openDelete;
+    window.Modal.closeDelete = closeDelete;
+  })();
 
-  function initTplModal() {
+  // 点检详情弹窗
+  (function () {
+    var overlay = document.getElementById('inspDetailModal');
+    var titleEl = document.getElementById('inspDetailTitle');
+    var bodyEl = document.getElementById('inspDetailBody');
+    var closeBtn = document.getElementById('inspDetailCloseBtn');
+    var closeX = document.getElementById('inspDetailClose');
+
+    function open(record) {
+      titleEl.textContent = '点检详情 - ' + (record.machine_code || '') + ' ' + (record.created_at || '');
+      var html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text-muted);">点检人：' + (record.operator_name || '-') + '</div>';
+      if (record.details && record.details.length) {
+        for (var i = 0; i < record.details.length; i++) {
+          var d = record.details[i];
+          var tagCls = d.result === '正常' ? 'tag-green' : 'tag-red';
+          var noteHtml = d.note ? '<span class="detail-note">(' + d.note + ')</span>' : '';
+          html += '<div class="insp-detail-item"><span class="detail-name">' + d.item_name + '</span><span class="tag ' + tagCls + '">' + d.result + '</span>' + noteHtml + '</div>';
+        }
+      } else {
+        html += '<div style="color:var(--text-muted);font-size:13px;">无明细数据</div>';
+      }
+      if (record.remark) {
+        html += '<div style="margin-top:12px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);">备注：' + record.remark + '</div>';
+      }
+      bodyEl.innerHTML = html;
+      overlay.classList.add('open');
+    }
+
+    function close() {
+      overlay.classList.remove('open');
+    }
+
+    closeBtn.addEventListener('click', close);
+    closeX.addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+
+    window.InspDetailModal = { open: open, close: close };
+  })();
+  // 点检模板弹窗
+  (function () {
     var overlay = document.getElementById('tplModal');
     var titleEl = document.getElementById('tplModalTitle');
     var listEl = document.getElementById('tplList');
@@ -230,11 +271,9 @@
         html += '<span class="tpl-actions">';
         html += '<button class="btn btn-ghost" data-action="edit" data-id="' + item.id + '" data-name="' + safeName + '">编辑</button>';
         html += '<button class="btn btn-danger" data-action="delete" data-id="' + item.id + '">删除</button>';
-        html += '</span>';
-        html += '</div>';
+        html += '</span></div>';
       }
       listEl.innerHTML = html;
-
       var buttons = listEl.querySelectorAll('button[data-action]');
       for (var j = 0; j < buttons.length; j++) {
         buttons[j].addEventListener('click', handleItemClick);
@@ -262,56 +301,32 @@
 
     addBtn.addEventListener('click', function () {
       var name = newNameInput.value.trim();
-      if (!name) {
-        window.showToast('请输入项目名称', 'warning');
-        newNameInput.focus();
-        return;
-      }
+      if (!name) { window.showToast('请输入项目名称', 'warning'); newNameInput.focus(); return; }
       API.inspectionTemplates.create({ machine_id: currentMachineId, item_name: name })
-        .then(function () {
-          newNameInput.value = '';
-          loadTemplates();
-          window.showToast('添加成功', 'success');
-        })
-        .catch(function (err) {
-          window.showToast('添加失败: ' + err.message, 'error');
-        });
+        .then(function () { newNameInput.value = ''; loadTemplates(); window.showToast('添加成功', 'success'); })
+        .catch(function (err) { window.showToast('添加失败: ' + err.message, 'error'); });
     });
 
     newNameInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addBtn.click();
-      }
+      if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
     });
 
     copyBtn.addEventListener('click', function () {
       var sourceId = parseInt(copySource.value, 10);
-      if (!sourceId) {
-        window.showToast('请选择源设备', 'warning');
-        return;
-      }
+      if (!sourceId) { window.showToast('请选择源设备', 'warning'); return; }
       if (!confirm('复制将覆盖当前设备已有的点检模板，确定继续？')) return;
       API.inspectionTemplates.copy(sourceId, currentMachineId)
-        .then(function (result) {
-          loadTemplates();
-          window.showToast('已复制 ' + result.copied + ' 个项目', 'success');
-        })
-        .catch(function (err) {
-          window.showToast('复制失败: ' + err.message, 'error');
-        });
+        .then(function (result) { loadTemplates(); window.showToast('已复制 ' + result.copied + ' 个项目', 'success'); })
+        .catch(function (err) { window.showToast('复制失败: ' + err.message, 'error'); });
     });
 
-    importBtn.addEventListener('click', function () {
-      importFile.click();
-    });
+    importBtn.addEventListener('click', function () { importFile.click(); });
 
     importFile.addEventListener('change', function () {
       var file = importFile.files[0];
       if (!file) return;
       importName.textContent = file.name;
       importConfirm.style.display = 'inline-flex';
-
       var reader = new FileReader();
       reader.onload = function (e) {
         var text = e.target.result;
@@ -319,81 +334,36 @@
         csvItems = [];
         for (var i = 0; i < lines.length; i++) {
           var line = lines[i].trim();
-          if (line) {
-            var parts = line.split(',');
-            csvItems.push(parts[0].trim());
-          }
+          if (line) { csvItems.push(line.split(',')[0].trim()); }
         }
       };
       reader.readAsText(file, 'UTF-8');
     });
 
     importConfirm.addEventListener('click', function () {
-      if (!csvItems || !csvItems.length) {
-        window.showToast('文件内容为空', 'warning');
-        return;
-      }
+      if (!csvItems || !csvItems.length) { window.showToast('文件内容为空', 'warning'); return; }
       if (!confirm('导入将覆盖当前设备已有的点检模板，共 ' + csvItems.length + ' 个项目，确定继续？')) return;
       API.inspectionTemplates.importCSV(currentMachineId, csvItems)
-        .then(function (result) {
-          loadTemplates();
-          window.showToast('成功导入 ' + result.imported + ' 个项目', 'success');
-          resetImport();
-        })
-        .catch(function (err) {
-          window.showToast('导入失败: ' + err.message, 'error');
-        });
+        .then(function (result) { loadTemplates(); window.showToast('成功导入 ' + result.imported + ' 个项目', 'success'); resetImport(); })
+        .catch(function (err) { window.showToast });
     });
 
     closeBtn.addEventListener('click', close);
     closeX.addEventListener('click', close);
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) close();
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+    window.TplModal = { open: open, close: close };
+  })();
+
+  // 导出按钮
+  (function () {
+    var exportBtn = document.getElementById('inspExportBtn');
+    if (!exportBtn) return;
+    exportBtn.addEventListener('click', function () {
+      var filterMachine = document.getElementById('inspFilterMachine');
+      var machineId = filterMachine ? filterMachine.value : '';
+      API.inspection.export(machineId);
     });
+  })();
 
-    window.TplModal = {
-      open: open,
-      close: close
-    };
-  }
-
-  function initInspDetailModal() {
-    var overlay = document.getElementById('inspDetailModal');
-    var titleEl = document.getElementById('inspDetailTitle');
-    var bodyEl = document.getElementById('inspDetailBody');
-    var closeBtn = document.getElementById('inspDetailCloseBtn');
-    var closeX = document.getElementById('inspDetailClose');
-
-    function open(record) {
-      titleEl.textContent = '点检详情 - ' + (record.machine_code || '') + ' ' + (record.created_at || '');
-      var html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text-muted);">点检人：' + (record.operator_name || '-') + '</div>';
-      if (record.details && record.details.length) {
-        for (var i = 0; i < record.details.length; i++) {
-          var d = record.details[i];
-          var tagCls = d.result === '正常' ? 'tag-green' : 'tag-red';
-          var noteHtml = d.note ? '<span class="detail-note">(' + d.note + ')</span>' : '';
-          html += '<div class="insp-detail-item"><span class="detail-name">' + d.item_name + '</span><span class="tag ' + tagCls + '">' + d.result + '</span>' + noteHtml + '</div>';
-        }
-      } else {
-        html += '<div style="color:var(--text-muted);font-size:13px;">无明细数据</div>';
-      }
-      if (record.remark) {
-        html += '<div style="margin-top:12px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);">备注：' + record.remark + '</div>';
-      }
-      bodyEl.innerHTML = html;
-      overlay.classList.add('open');
-    }
-
-    function close() {
-      overlay.classList.remove('open');
-    }
-
-    closeBtn.addEventListener('click', close);
-    closeX.addEventListener('click', close);
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) close();
-    });
-
-    window.InspDetailModal = { open: open, close: close };
-  }
 })();
