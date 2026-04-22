@@ -5,40 +5,14 @@ from database.db import Database
 db = Database()
 
 
-def get_overview_stats() -> dict:
-    """
-    获取仪表盘概览统计数据。
-
-    Returns:
-        字典，结构如下：
-        {
-            "today": {
-                "records":          int,  — 今日生产记录数
-                "total_quantity":   int,  — 今日总产量
-                "total_defects":    int,  — 今日总不良品数
-            },
-            "total_production_records":  int,  — 全部生产记录总数
-            "pending_faults":            int,  — 待处理故障数
-            "total_maintenance_records": int,  — 全部保养记录总数
-            "machine_today": [                   — 今日各机床产量明细
-                {
-                    "code":     str,  — 机床编号
-                    "name":     str,  — 机床名称
-                    "quantity": int,  — 今日产量
-                    "defects":  int,  — 今日不良品数
-                },
-                ...
-            ],
-        }
-    """
+def get_overview_stats():
     today = datetime.now().strftime("%Y-%m-%d")
     today_start = f"{today} 00:00:00"
     today_end = f"{today} 23:59:59"
 
-    # ---------- 今日汇总 ----------
     today_summary = db.execute_one(
         "SELECT "
-        "    COUNT(*)            AS records, "
+        "    COUNT(*) AS records, "
         "    COALESCE(SUM(actual_quantity), 0) AS total_quantity, "
         "    COALESCE(SUM(defect_quantity), 0) AS total_defects "
         "FROM production_records "
@@ -46,22 +20,19 @@ def get_overview_stats() -> dict:
         (today_start, today_end),
     )
 
-    # ---------- 全部生产记录总数 ----------
     total_prod = db.execute_one("SELECT COUNT(*) AS cnt FROM production_records")
 
-    # ---------- 待处理故障数 ----------
     pending = db.execute_one(
         "SELECT COUNT(*) AS cnt FROM fault_records WHERE status = '待处理'"
     )
 
-    # ---------- 全部保养记录总数 ----------
     total_maint = db.execute_one("SELECT COUNT(*) AS cnt FROM maintenance_records")
 
-    # ---------- 今日各机床产量明细 ----------
     machine_today = db.execute(
         "SELECT "
-        "    m.machine_code  AS code, "
-        "    m.machine_name  AS name, "
+        "    m.machine_code AS code, "
+        "    m.machine_name AS name, "
+        "    m.status AS machine_status, "
         "    COALESCE(SUM(p.actual_quantity), 0) AS quantity, "
         "    COALESCE(SUM(p.defect_quantity), 0) AS defects "
         "FROM machines m "
@@ -74,6 +45,45 @@ def get_overview_stats() -> dict:
         (today_start, today_end),
     )
 
+    insp_today = db.execute(
+        "SELECT "
+        "    ir.machine_id, "
+        "    ir.operator_name, "
+        "    ir.created_at "
+        "FROM inspection_records ir "
+        "WHERE ir.created_at >= ? AND ir.created_at <= ? "
+        "ORDER BY ir.created_at DESC",
+        (today_start, today_end),
+    )
+
+    insp_map = {}
+    for rec in insp_today:
+        mid = rec["machine_id"]
+        if mid not in insp_map:
+            insp_map[mid] = {
+                "inspected": True,
+                "operator": rec["operator_name"],
+                "time": rec["created_at"],
+            }
+
+    machines = db.execute("SELECT id, machine_code FROM machines")
+    code_to_id = {m["machine_code"]: m["id"] for m in machines}
+
+    machine_cards = []
+    for m in machine_today:
+        mid = code_to_id.get(m["code"])
+        insp = insp_map.get(mid, {})
+        machine_cards.append({
+            "code": m["code"],
+            "name": m["name"],
+            "machine_status": m["machine_status"],
+            "quantity": m["quantity"],
+            "defects": m["defects"],
+            "inspected": insp.get("inspected", False),
+            "insp_operator": insp.get("operator", ""),
+            "insp_time": insp.get("time", ""),
+        })
+
     return {
         "today": {
             "records": today_summary["records"] if today_summary else 0,
@@ -83,5 +93,5 @@ def get_overview_stats() -> dict:
         "total_production_records": total_prod["cnt"] if total_prod else 0,
         "pending_faults": pending["cnt"] if pending else 0,
         "total_maintenance_records": total_maint["cnt"] if total_maint else 0,
-        "machine_today": machine_today,
+        "machine_today": machine_cards,
     }

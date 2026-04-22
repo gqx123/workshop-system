@@ -138,7 +138,7 @@
   // ----------------------------------------------------------------
   // 提交点检记录
   // ----------------------------------------------------------------
-  submitBtn.addEventListener('click', async function () {
+    submitBtn.addEventListener('click', async function () {
     var operatorName = (document.getElementById('operator_name').value || '').trim();
     if (!operatorName) {
       showToast('请填写点检人员', 'warning');
@@ -178,7 +178,12 @@
       showToast('点检记录已提交！ID: ' + result.id, 'success');
       resetForm();
     } catch (err) {
-      showToast('提交失败: ' + err.message, 'error');
+      // 今日已点检的特殊处理
+      if (err.message && err.message.indexOf('已点检') >= 0) {
+        showToast('该设备今日已点检，不能重复提交。如需重新填写，请联系管理员删除今日记录后重试', 'error');
+      } else {
+        showToast('提交失败: ' + err.message, 'error');
+      }
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = '提交点检记录';

@@ -5,6 +5,7 @@ from services.inspection_service import (
     delete_template, copy_templates, import_templates,
     create_inspection, list_inspections,
     get_inspection_by_id, delete_inspection,
+    check_today_inspected,
 )
 import openpyxl
 from openpyxl.utils import get_column_letter
@@ -107,6 +108,10 @@ def add_inspection():
         data = request.get_json(silent=True)
         if not data:
             return jsonify({"error": "请求体必须为 JSON"}), 400
+        # 检查今日是否已点检
+        mid = data.get("machine_id")
+        if mid and check_today_inspected(int(mid)):
+            return jsonify({"error": "该设备今日已点检，不能重复提交。如需重新填写，请联系管理员删除今日记录后重试"}), 400
         new_id = create_inspection(data)
         return jsonify({"success": True, "id": new_id}), 201
     except ValueError as e:

@@ -173,6 +173,17 @@ def delete_inspection(record_id: int) -> bool:
     )
     return rows > 0
 
+def check_today_inspected(machine_id: int) -> bool:
+    """检查某设备今日是否已点检"""
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+    row = db.execute_one(
+        "SELECT COUNT(*) AS cnt FROM inspection_records "
+        "WHERE machine_id = ? AND created_at >= ? AND created_at <= ?",
+        (machine_id, f"{today} 00:00:00", f"{today} 23:59:59"),
+    )
+    return row and row["cnt"] > 0
+
 def import_templates(machine_id: int, items: list[str]) -> int:
     """
     批量导入点检模板（覆盖模式）。
