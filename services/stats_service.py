@@ -56,15 +56,41 @@ def get_overview_stats():
         (today_start, today_end),
     )
 
+        # 获取今日点检明细（用于统计异常数量）
+    insp_details = db.execute(
+        "SELECT ir.machine_id, ir.details "
+        "FROM inspection_records ir "
+        "WHERE ir.created_at >= ? AND ir.created_at <= ?",
+        (today_start, today_end),
+    )
+
+    import json
     insp_map = {}
+    for rec in insp_details:
+        mid = rec["machine_id"]
+        # 统计异常数量
+        abnormal_count = 0
+        try:
+            details = json.loads(rec["details"])
+            for d in details:
+                if d.get("result") == "异常":
+                    abnormal_count += 1
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # 只保留一条（最新的覆盖旧的）
+        insp_map[mid] = {
+            "inspected": True,
+            "abnormal_count": abnormal_count,
+        }
+
+    # 补充点检人和时间
     for rec in insp_today:
         mid = rec["machine_id"]
-        if mid not in insp_map:
-            insp_map[mid] = {
-                "inspected": True,
-                "operator": rec["operator_name"],
-                "time": rec["created_at"],
-            }
+        if mid in insp_map:
+            insp_map[mid]["operator"] = rec["operator_name"]
+            insp_map[mid]["time"] = rec["created_at"]
+
 
     machines = db.execute("SELECT id, machine_code FROM machines")
     code_to_id = {m["machine_code"]: m["id"] for m in machines}
@@ -80,9 +106,11 @@ def get_overview_stats():
             "quantity": m["quantity"],
             "defects": m["defects"],
             "inspected": insp.get("inspected", False),
+            "abnormal_count": insp.get("abnormal_count", 0),
             "insp_operator": insp.get("operator", ""),
             "insp_time": insp.get("time", ""),
         })
+
 
     return {
         "today": {

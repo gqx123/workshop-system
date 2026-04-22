@@ -8,6 +8,25 @@
     <link rel="stylesheet" href="/frontend/css/variables.css">
     <link rel="stylesheet" href="/frontend/css/dashboard.css">
     <style>
+        .filter-btn {
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            background: transparent;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            color: var(--text);
+            border-color: var(--text-muted);
+        }
+
+        .filter-btn.active {
+            color: var(--primary);
+            background: var(--primary-light);
+            border-color: var(--primary);
+            font-weight: 500;
+        }
+
         .nav-badge {
             margin-left: auto;
             min-width: 18px;
@@ -238,7 +257,15 @@
                 </div>
                 <div class="main-body">
                     <div class="stats-grid" id="overviewStats"></div>
-                    <h3 style="margin-bottom:14px;font-size:15px;font-weight:600;">今日各机床状态</h3>
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                        <h3 style="font-size:15px;font-weight:600;margin:0;">今日各机床状态</h3>
+                        <span style="font-size:13px;color:var(--text);font-weight:500;" id="machineCountOverview"></span>
+                        <div style="display:flex;gap:4px;">
+                            <button class="btn filter-btn active" data-filter="all">全部</button>
+                            <button class="btn filter-btn" data-filter="uninspected">未点检</button>
+                            <button class="btn filter-btn" data-filter="abnormal">点检异常</button>
+                        </div>
+                    </div>
                     <div class="machine-grid" id="overviewMachines"></div>
                 </div>
             </div>
@@ -292,10 +319,10 @@
                         <div class="toolbar-group"><select class="form-select" id="inspFilterMachine">
                                 <option value="">全部机床</option>
                             </select><button class="btn btn-primary" id="inspFilterBtn">查询</button>
-                            <button class="btn btn-ghost"
-                                id="inspExportBtn">导出Excel</button></div>
+                            <button class="btn btn-ghost" id="inspExportBtn">导出Excel</button>
                         </div>
-                        <div class="table-wrap">
+                    </div>
+                    <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
@@ -366,7 +393,10 @@
                 <div class="main-body">
                     <div class="toolbar">
                         <div class="toolbar-group"><button class="btn btn-primary"
-                                onclick="DashMachines.openCreateModal()">+ 新增机床</button></div>
+                                onclick="DashMachines.openCreateModal()">+ 新增机床</button>
+                                <span style="font-size:13px;color:var(--text);font-weight:500;margin-left:8px;" id="machineCountMachines"></span>
+
+                        </div>
                     </div>
                     <div class="table-wrap">
                         <table>
