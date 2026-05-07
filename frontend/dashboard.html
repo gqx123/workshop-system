@@ -343,9 +343,13 @@
                 </div>
                 <div class="main-body">
                     <div class="toolbar">
-                        <div class="toolbar-group"><select class="form-select" id="inspFilterMachine">
+                        <div class="toolbar-group">
+                            <select class="form-select" id="inspFilterMachine">
                                 <option value="">全部机床</option>
-                            </select><button class="btn btn-primary" id="inspFilterBtn">查询</button>
+                            </select>
+                            <input type="date" class="form-input" id="inspFilterFrom">
+                            <input type="date" class="form-input" id="inspFilterTo">
+                            <button class="btn btn-primary" id="inspFilterBtn">查询</button>
                             <button class="btn btn-ghost" id="inspExportBtn">导出Excel</button>
                         </div>
                     </div>

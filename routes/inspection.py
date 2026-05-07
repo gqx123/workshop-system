@@ -122,9 +122,16 @@ def add_inspection():
 
 @inspection_bp.route("/api/inspection", methods=["GET"])
 def query_inspections():
+    """GET /api/inspection?machine_id=&from=&to= — 查询点检记录"""
     try:
         machine_id = request.args.get("machine_id", type=int)
-        return jsonify(list_inspections(machine_id=machine_id))
+        date_from = request.args.get("from")
+        date_to = request.args.get("to")
+        return jsonify(list_inspections(
+            machine_id=machine_id,
+            date_from=date_from,
+            date_to=date_to,
+        ))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -175,7 +182,7 @@ def export_inspections():
             sheet_name = machine_code[:31]
             ws = wb.create_sheet(title=sheet_name)
 
-            # 收集所有点检项目名称（取第一次记录的明细顺序）
+            # 收集所有点检项目名称
             all_items = []
             if recs[0].get("details"):
                 for d in recs[0]["details"]:
@@ -193,14 +200,8 @@ def export_inspections():
             # 从第二列开始，每列是一次点检记录
             for col_idx, rec in enumerate(recs):
                 col = col_idx + 2
-
-                # 点检人
                 ws.cell(row=1, column=col, value=rec.get("operator_name", ""))
-
-                # 日期
                 ws.cell(row=2, column=col, value=rec.get("created_at", ""))
-
-                # 点检结果
                 details = rec.get("details", [])
                 for i, d in enumerate(details):
                     result = d.get("result", "")
@@ -224,4 +225,3 @@ def export_inspections():
         return resp
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-

@@ -125,8 +125,13 @@ def create_inspection(data: dict) -> int:
     return row["id"]
 
 
-def list_inspections(machine_id: int | None = None, limit: int = 200) -> list[dict]:
-    """查询点检记录"""
+def list_inspections(
+    machine_id: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: int = 200,
+) -> list[dict]:
+    """查询点检记录，支持按机床和日期范围筛选"""
     sql = (
         "SELECT ir.*, m.machine_code, m.machine_name "
         "FROM inspection_records ir "
@@ -137,6 +142,12 @@ def list_inspections(machine_id: int | None = None, limit: int = 200) -> list[di
     if machine_id is not None:
         sql += " AND ir.machine_id = ?"
         params.append(machine_id)
+    if date_from is not None:
+        sql += " AND ir.created_at >= ?"
+        params.append(date_from)
+    if date_to is not None:
+        sql += " AND ir.created_at <= ?"
+        params.append(date_to)
     sql += " ORDER BY ir.created_at DESC LIMIT ?"
     params.append(limit)
     rows = db.execute(sql, tuple(params))
@@ -173,6 +184,7 @@ def delete_inspection(record_id: int) -> bool:
     )
     return rows > 0
 
+
 def check_today_inspected(machine_id: int) -> bool:
     """检查某设备今日是否已点检"""
     from datetime import datetime
@@ -184,17 +196,11 @@ def check_today_inspected(machine_id: int) -> bool:
     )
     return row and row["cnt"] > 0
 
+
 def import_templates(machine_id: int, items: list[str]) -> int:
     """
     批量导入点检模板（覆盖模式）。
     先清空该设备已有模板，再按顺序插入新项目。
-
-    Args:
-        machine_id: 设备 ID
-        items: 点检项目名称列表
-
-    Returns:
-        导入的项目数量
     """
     if not machine_id:
         raise ValueError("缺少 machine_id")
