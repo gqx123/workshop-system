@@ -1,4 +1,7 @@
 """机床业务逻辑层"""
+import os
+import io
+import zipfile
 from database.db import Database
 
 db = Database()
@@ -68,7 +71,6 @@ def update_machine(machine_id, data):
     return rows > 0
 
 
-
 def update_machine_status(machine_id: int, status: str) -> bool:
     """更新机床状态"""
     rows = db.execute_write(
@@ -105,3 +107,72 @@ def delete_machine(machine_id: int) -> bool:
 
     rows = db.execute_write("DELETE FROM machines WHERE id = ?", (machine_id,))
     return rows > 0
+
+
+# ================================================================
+# 二维码生成
+# ================================================================
+
+def generate_qrcode_png(url: str) -> bytes:
+    """
+    根据 URL 生成二维码图片，返回 PNG 字节流。
+    """
+    import qrcode
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=2,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return buf.getvalue()
+
+
+def get_machine_qrcode(machine_id: int) -> tuple[bytes, str] | None:
+    """
+    生成单台机床的二维码 PNG。
+    返回 (png_bytes, filename) 或 None。
+    """
+    from config import BASE_URL
+    machine = get_machine_by_id(machine_id)
+    if not machine:
+        return None
+    url = f"{BASE_URL}/mobile/?machine_id={machine_id}"
+    png = generate_qrcode_png(url)
+    filename = f"{machine['machine_code']}.png"
+    return png, filename
+
+
+def export_machines_qrcodes_zip(machine_ids: list[int]) -> bytes | None:
+    """
+    批量生成多台机床的二维码，打包成 ZIP 返回。
+    返回 ZIP 字节流，或 None（没有有效机床）。
+    """
+    from config import BASE_URL
+    if not machine_ids:
+        return None
+
+    # 一次性查出所有需要的机床
+    placeholders = ",".join("?" * len(machine_ids))
+    machines = db.execute(
+        f"SELECT id, machine_code, machine_name FROM machines WHERE id IN ({placeholders})",
+        tuple(machine_ids),
+    )
+    if not machines:
+        return None
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for m in machines:
+            url = f"{BASE_URL}/mobile/?machine_id={m['id']}"
+            png = generate_qrcode_png(url)
+            filename = f"{m['machine_code']}.png"
+            zf.writestr(filename, png)
+
+    buf.seek(0)
+    return buf.getvalue()

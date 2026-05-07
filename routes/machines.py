@@ -1,7 +1,9 @@
 """机床相关路由"""
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, make_response
 from services.machine_service import (
-    get_all_machines, get_machine_by_id, create_machine, update_machine, delete_machine,
+    get_all_machines, get_machine_by_id, create_machine,
+    update_machine, delete_machine,
+    get_machine_qrcode, export_machines_qrcodes_zip,
 )
 
 machines_bp = Blueprint("machines", __name__, url_prefix="/api/machines")
@@ -73,5 +75,42 @@ def remove_machine(machine_id: int):
         return jsonify({"success": True})
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@machines_bp.route("/<int:machine_id>/qrcode", methods=["GET"])
+def machine_qrcode(machine_id: int):
+    """GET /api/machines/<id>/qrcode — 获取单台机床二维码 PNG"""
+    try:
+        result = get_machine_qrcode(machine_id)
+        if result is None:
+            return jsonify({"error": "机床不存在"}), 404
+        png, filename = result
+        resp = make_response(png)
+        resp.headers["Content-Type"] = "image/png"
+        resp.headers["Content-Disposition"] = f"inline; filename={filename}"
+        return resp
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@machines_bp.route("/qrcodes/export", methods=["POST"])
+def export_qrcodes():
+    """POST /api/machines/qrcodes/export — 批量导出二维码 ZIP"""
+    try:
+        data = request.get_json(silent=True)
+        if not data or not data.get("machine_ids"):
+            return jsonify({"error": "缺少 machine_ids"}), 400
+        machine_ids = data["machine_ids"]
+        if not isinstance(machine_ids, list):
+            return jsonify({"error": "machine_ids 必须是数组"}), 400
+        zip_bytes = export_machines_qrcodes_zip(machine_ids)
+        if zip_bytes is None:
+            return jsonify({"error": "没有有效的机床数据"}), 400
+        resp = make_response(zip_bytes)
+        resp.headers["Content-Type"] = "application/zip"
+        resp.headers["Content-Disposition"] = "attachment; filename=machine_qrcodes.zip"
+        return resp
     except Exception as e:
         return jsonify({"error": str(e)}), 500

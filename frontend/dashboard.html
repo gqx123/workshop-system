@@ -152,6 +152,30 @@
 
 <body>
 
+    <div class="modal-overlay" id="qrcodeModal">
+        <div class="modal" style="max-width:360px;text-align:center;">
+            <div class="modal-header">
+                <span class="modal-title" id="qrcodeModalTitle">二维码</span>
+                <button class="modal-close" id="qrcodeModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="qrcodeModalBody">
+                <div class="loading" id="qrcodeLoading">
+                    <div class="loading-spinner"></div>
+                    <span>生成中...</span>
+                </div>
+                <div id="qrcodeContent" style="display:none;">
+                    <p id="qrcodeMachineInfo" style="font-size:13px;color:var(--text-muted);margin-bottom:12px;"></p>
+                    <img id="qrcodeImg"
+                        style="max-width:260px;border:1px solid var(--border);border-radius:var(--radius-sm);" alt="二维码">
+                    <div style="margin-top:16px;">
+                        <a class="btn btn-primary" id="qrcodeDownloadBtn" download style="text-decoration:none;">下载二维码</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header"><span class="modal-title" id="editModalTitle">编辑</span><button class="modal-close"
@@ -392,16 +416,19 @@
                 </div>
                 <div class="main-body">
                     <div class="toolbar">
-                        <div class="toolbar-group"><button class="btn btn-primary"
-                                onclick="DashMachines.openCreateModal()">+ 新增机床</button>
-                                <span style="font-size:13px;color:var(--text);font-weight:500;margin-left:8px;" id="machineCountMachines"></span>
-
+                        <div class="toolbar-group">
+                            <button class="btn btn-primary" onclick="DashMachines.openCreateModal()">+ 新增机床</button>
+                            <button class="btn btn-ghost" id="exportQrcodesBtn" onclick="DashMachines.exportSelectedQrcodes()"
+                                style="display:none;">导出选中二维码</button>
+                            <span style="font-size:13px;color:var(--text);font-weight:500;margin-left:8px;"
+                                id="machineCountMachines"></span>
                         </div>
                     </div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
+                                    <th style="width:36px;"><input type="checkbox" id="machineSelectAll"></th>
                                     <th>编号</th>
                                     <th>名称</th>
                                     <th>类型</th>
