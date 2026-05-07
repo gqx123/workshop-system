@@ -203,7 +203,7 @@ var DashMachines = (function () {
             var blob = await res.blob();
             var a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'machine_qrcodes.zip';
+            a.download = 'machine_qrcodes.pdf';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

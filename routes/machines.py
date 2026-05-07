@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request, make_response
 from services.machine_service import (
     get_all_machines, get_machine_by_id, create_machine,
     update_machine, delete_machine,
-    get_machine_qrcode, export_machines_qrcodes_zip,
+    get_machine_qrcode, export_machines_qrcodes_pdf,
 )
 
 machines_bp = Blueprint("machines", __name__, url_prefix="/api/machines")
@@ -97,7 +97,7 @@ def machine_qrcode(machine_id: int):
 
 @machines_bp.route("/qrcodes/export", methods=["POST"])
 def export_qrcodes():
-    """POST /api/machines/qrcodes/export — 批量导出二维码 ZIP"""
+    """POST /api/machines/qrcodes/export — 批量导出二维码 PDF"""
     try:
         data = request.get_json(silent=True)
         if not data or not data.get("machine_ids"):
@@ -105,12 +105,12 @@ def export_qrcodes():
         machine_ids = data["machine_ids"]
         if not isinstance(machine_ids, list):
             return jsonify({"error": "machine_ids 必须是数组"}), 400
-        zip_bytes = export_machines_qrcodes_zip(machine_ids)
-        if zip_bytes is None:
+        pdf_bytes = export_machines_qrcodes_pdf(machine_ids)
+        if pdf_bytes is None:
             return jsonify({"error": "没有有效的机床数据"}), 400
-        resp = make_response(zip_bytes)
-        resp.headers["Content-Type"] = "application/zip"
-        resp.headers["Content-Disposition"] = "attachment; filename=machine_qrcodes.zip"
+        resp = make_response(pdf_bytes)
+        resp.headers["Content-Type"] = "application/pdf"
+        resp.headers["Content-Disposition"] = "attachment; filename=machine_qrcodes.pdf"
         return resp
     except Exception as e:
         return jsonify({"error": str(e)}), 500

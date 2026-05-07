@@ -1,4 +1,4 @@
-py -m pip install --no-index --find-links=packages flask qrcode pillow openpyxl安装环境
+py -m pip install --no-index --find-links=packages flask qrcode pillow openpyxl fpdf2安装环境
 
 py tools/generate_qrcodes.py二维码生成
 py run.py运行服务器

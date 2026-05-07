@@ -1,7 +1,8 @@
 """机床业务逻辑层"""
-import os
 import io
-import zipfile
+import os
+import platform
+import struct
 from database.db import Database
 
 db = Database()
@@ -113,11 +114,37 @@ def delete_machine(machine_id: int) -> bool:
 # 二维码生成
 # ================================================================
 
+def _find_chinese_font() -> str | None:
+    """查找系统中可用的中文字体文件，用于二维码卡片上的文字渲染"""
+    candidates = []
+    if platform.system() == "Windows":
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        fonts = os.path.join(windir, "Fonts")
+        candidates = [
+            os.path.join(fonts, "msyh.ttc"),
+            os.path.join(fonts, "msyhbd.ttc"),
+            os.path.join(fonts, "simhei.ttf"),
+            os.path.join(fonts, "simsun.ttc"),
+        ]
+    elif platform.system() == "Linux":
+        candidates = [
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+        ]
+    elif platform.system() == "Darwin":
+        candidates = [
+            "/System/Library/Fonts/PingFang.ttc",
+        ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
+
+
 def generate_qrcode_png(url: str) -> bytes:
-    """
-    根据 URL 生成二维码图片，返回 PNG 字节流。
-    """
+    """根据 URL 生成纯二维码 PNG（用于弹窗预览）"""
     import qrcode
+
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -133,31 +160,73 @@ def generate_qrcode_png(url: str) -> bytes:
     return buf.getvalue()
 
 
+def _generate_qr_card(url: str, code: str, name: str) -> bytes:
+    """
+    生成带机床编号和名称的二维码卡片图片。
+    上半部分为二维码，下半部分为文字标注。
+    """
+    import qrcode
+    from PIL import Image, ImageDraw, ImageFont
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=2,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    qr_w, qr_h = qr_img.size
+
+    # 文字区域高度（像素）
+    text_area = 80
+    card = Image.new("RGB", (qr_w, qr_h + text_area), "white")
+    card.paste(qr_img, (0, 0))
+
+    draw = ImageDraw.Draw(card)
+    font_path = _find_chinese_font()
+    try:
+        font = ImageFont.truetype(font_path, 28) if font_path else ImageFont.load_default()
+    except Exception:
+        font = ImageFont.load_default()
+
+    text = f"{code} {name}"
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tx = (qr_w - tw) // 2
+    ty = qr_h + (text_area - th) // 2
+    draw.text((tx, ty), text, fill="black", font=font)
+
+    buf = io.BytesIO()
+    card.save(buf, format="PNG")
+    buf.seek(0)
+    return buf.getvalue()
+
+
 def get_machine_qrcode(machine_id: int) -> tuple[bytes, str] | None:
-    """
-    生成单台机床的二维码 PNG。
-    返回 (png_bytes, filename) 或 None。
-    """
+    """生成单台机床的纯二维码 PNG（弹窗预览用）"""
     from config import BASE_URL
+
     machine = get_machine_by_id(machine_id)
     if not machine:
         return None
     url = f"{BASE_URL}/mobile/?machine_id={machine_id}"
     png = generate_qrcode_png(url)
-    filename = f"{machine['machine_code']}.png"
-    return png, filename
+    return png, f"{machine['machine_code']}.png"
 
 
-def export_machines_qrcodes_zip(machine_ids: list[int]) -> bytes | None:
+def export_machines_qrcodes_pdf(machine_ids: list[int]) -> bytes | None:
     """
-    批量生成多台机床的二维码，打包成 ZIP 返回。
-    返回 ZIP 字节流，或 None（没有有效机床）。
+    批量生成二维码卡片，排版到 A4 PDF。
+    布局：3 列 × 4 行 = 每页 12 个，含裁剪辅助线。
     """
     from config import BASE_URL
+    from fpdf import FPDF
+
     if not machine_ids:
         return None
 
-    # 一次性查出所有需要的机床
     placeholders = ",".join("?" * len(machine_ids))
     machines = db.execute(
         f"SELECT id, machine_code, machine_name FROM machines WHERE id IN ({placeholders})",
@@ -166,13 +235,51 @@ def export_machines_qrcodes_zip(machine_ids: list[int]) -> bytes | None:
     if not machines:
         return None
 
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for m in machines:
-            url = f"{BASE_URL}/mobile/?machine_id={m['id']}"
-            png = generate_qrcode_png(url)
-            filename = f"{m['machine_code']}.png"
-            zf.writestr(filename, png)
+    # A4 页面参数（mm）
+    page_w, page_h = 210, 297
+    cols, rows = 3, 4
+    margin_x, margin_y = 5, 5
+    cell_w = (page_w - 2 * margin_x) / cols   # ≈66.67mm
+    cell_h = (page_h - 2 * margin_y) / rows    # ≈71.75mm
+    card_print_w = 50  # 二维码卡片打印宽度 5cm
 
-    buf.seek(0)
-    return buf.getvalue()
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+
+    for idx, m in enumerate(machines):
+        pos = idx % (cols * rows)
+        col = pos % cols
+        row = pos // cols
+
+        # 每页开头：画裁剪辅助线
+        if pos == 0:
+            pdf.add_page()
+            pdf.set_draw_color(180, 180, 180)
+            pdf.set_line_width(0.2)
+            pdf.set_dash_pattern(dash=2, gap=2)
+
+            # 竖线
+            for c in range(1, cols):
+                lx = margin_x + c * cell_w
+                pdf.line(lx, margin_y, lx, page_h - margin_y)
+            # 横线
+            for r in range(1, rows):
+                ly = margin_y + r * cell_h
+                pdf.line(margin_x, ly, page_w - margin_x, ly)
+
+            pdf.set_dash_pattern()  # 恢复实线
+
+        # 生成卡片图片
+        url = f"{BASE_URL}/mobile/?machine_id={m['id']}"
+        card_png = _generate_qr_card(url, m["machine_code"], m["machine_name"])
+
+        # 从 PNG 头部读取图片尺寸，计算打印高度（保持比例）
+        img_w, img_h = struct.unpack(">II", card_png[16:24])
+        card_print_h = card_print_w * img_h / img_w
+
+        # 居中放置在单元格内
+        cx = margin_x + col * cell_w + (cell_w - card_print_w) / 2
+        cy = margin_y + row * cell_h + (cell_h - card_print_h) / 2
+
+        pdf.image(io.BytesIO(card_png), x=cx, y=cy, w=card_print_w, h=card_print_h)
+
+    return bytes(pdf.output())
