@@ -90,7 +90,7 @@ var DashProduction = (function () {
                 '<div class="form-group"><label class="form-label">操作人员</label><input class="form-input" id="ep_operator" value="' + escAttr(r.operator_name) + '"></div>' +
                 '<div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="ep_remark" rows="2">' + esc(r.remark || '') + '</textarea></div>';
 
-            window.Modal.openEdit('编辑生产记录', html, async function (close) {
+            window.Modal.openEdit('编辑生产记录', html, async function (close, fail) {
                 try {
                     await API.production.update(id, {
                         product_name: document.getElementById('ep_name').value.trim(),
@@ -104,7 +104,7 @@ var DashProduction = (function () {
                     window.showToast('更新成功', 'success');
                     close();
                     refresh();
-                } catch (err) { window.showToast('更新失败: ' + err.message, 'error'); }
+                } catch (err) { window.showToast('更新失败: ' + err.message, 'error'); fail(); }
             });
         }).catch(function (err) { window.showToast('加载失败: ' + err.message, 'error'); });
     }

@@ -11,9 +11,12 @@ db = Database()
 def get_all_machines() -> list[dict]:
     """获取所有机床列表，按编号升序"""
     return db.execute(
-        "SELECT id, machine_code, machine_name, machine_type, location, status, created_at "
-        "FROM machines ORDER BY machine_code"
+        "SELECT m.id, m.machine_code, m.machine_name, m.machine_type, "
+        "m.location, m.status, m.operator_name, m.created_at, "
+        "(SELECT COUNT(*) FROM inspection_templates t WHERE t.machine_id = m.id) AS tpl_count "
+        "FROM machines m ORDER BY m.machine_code"
     )
+
 
 
 def get_machine_by_id(machine_id: int) -> dict | None:
@@ -35,28 +38,35 @@ def get_machine_by_code(code: str) -> dict | None:
 
 
 def create_machine(data):
+    from database.db import DatabaseError
     required = ["machine_code", "machine_name"]
     for f in required:
         if f not in data or not data[f]:
             raise ValueError(f"缺少必填字段: {f}")
 
-    db.execute_write(
-        "INSERT INTO machines (machine_code, machine_name, machine_type, location, status, operator_name) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (
-            data["machine_code"],
-            data["machine_name"],
-            data.get("machine_type", ""),
-            data.get("location", ""),
-            data.get("status", "正常"),
-            data.get("operator_name", ""),
-        ),
-    )
+    try:
+        db.execute_write(
+            "INSERT INTO machines (machine_code, machine_name, machine_type, location, status, operator_name) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                data["machine_code"],
+                data["machine_name"],
+                data.get("machine_type", ""),
+                data.get("location", ""),
+                data.get("status", "正常"),
+                data.get("operator_name", ""),
+            ),
+        )
+    except DatabaseError as e:
+        if "UNIQUE" in str(e) and "machine_code" in str(e):
+            raise ValueError("保存失败，机床编号已存在")
+        raise
     row = db.execute_one("SELECT last_insert_rowid() AS id")
     return row["id"]
 
 
 def update_machine(machine_id, data):
+    from database.db import DatabaseError
     allowed = {"machine_code", "machine_name", "machine_type", "location", "status", "operator_name"}
     updates, params = [], []
     for key, val in data.items():
@@ -66,9 +76,14 @@ def update_machine(machine_id, data):
     if not updates:
         return False
     params.append(machine_id)
-    rows = db.execute_write(
-        f"UPDATE machines SET {', '.join(updates)} WHERE id = ?", tuple(params)
-    )
+    try:
+        rows = db.execute_write(
+            f"UPDATE machines SET {', '.join(updates)} WHERE id = ?", tuple(params)
+        )
+    except DatabaseError as e:
+        if "UNIQUE" in str(e) and "machine_code" in str(e):
+            raise ValueError("保存失败，机床编号已存在")
+        raise
     return rows > 0
 
 
@@ -83,7 +98,7 @@ def update_machine_status(machine_id: int, status: str) -> bool:
 def delete_machine(machine_id: int) -> bool:
     """
     删除机床。
-    如果有关联记录则拒绝删除，返回 False。
+    点检模板随机床一起清除，其他历史记录则阻止删除。
     """
     prod = db.execute_one(
         "SELECT COUNT(*) AS cnt FROM production_records WHERE machine_id = ?",
@@ -105,6 +120,18 @@ def delete_machine(machine_id: int) -> bool:
     )
     if fault and fault["cnt"] > 0:
         raise ValueError("该机床存在故障记录，无法删除")
+
+    insp = db.execute_one(
+        "SELECT COUNT(*) AS cnt FROM inspection_records WHERE machine_id = ?",
+        (machine_id,),
+    )
+    if insp and insp["cnt"] > 0:
+        raise ValueError("该机床存在点检记录，无法删除")
+
+    # 点检模板随机床一起清除
+    db.execute_write(
+        "DELETE FROM inspection_templates WHERE machine_id = ?", (machine_id,)
+    )
 
     rows = db.execute_write("DELETE FROM machines WHERE id = ?", (machine_id,))
     return rows > 0

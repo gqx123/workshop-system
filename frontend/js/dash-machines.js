@@ -33,7 +33,7 @@ var DashMachines = (function () {
             if (e.target === qrModal) closeQrcodeModal();
         });
 
-        // 【新增】全选/反选
+        // 全选/反选
         selectAllCb.addEventListener('change', function () {
             var cbs = tableBody.querySelectorAll('.machine-cb');
             for (var i = 0; i < cbs.length; i++) {
@@ -41,7 +41,17 @@ var DashMachines = (function () {
             }
             updateBatchCount();
         });
+
+        // 监听点检模板弹窗关闭，自动刷新机床列表
+        var tplOverlay = document.getElementById('tplModal');
+        var tplObserver = new MutationObserver(function () {
+            if (!tplOverlay.classList.contains('open')) {
+                refresh();
+            }
+        });
+        tplObserver.observe(tplOverlay, { attributes: true, attributeFilter: ['class'] });
     }
+
 
     async function refresh() {
         showLoading(true);
@@ -72,7 +82,12 @@ var DashMachines = (function () {
                 rows += '<td><input type="checkbox" class="machine-cb" value="' + m.id + '" onchange="DashMachines.onCbChange()"></td>';
             }
             rows += '<td class="mono">' + esc(m.machine_code) + '</td>';
-            rows += '<td>' + esc(m.machine_name) + '</td>';
+            rows += '<td>' + esc(m.machine_name);
+            if (m.tpl_count === 0) {
+                rows += ' <span class="tag tag-yellow" style="font-size:11px;padding:2px 6px;cursor:pointer;" onclick="DashMachines.openTplModal(' + m.id + ',\'' + escAttr(m.machine_code) + '\')">未配置点检模板</span>';
+            }
+            rows += '</td>';
+
             rows += '<td>' + esc(m.machine_type || '-') + '</td>';
             rows += '<td>' + esc(m.location || '-') + '</td>';
             rows += '<td>' + statusTag(m.status) + '</td>';
@@ -248,7 +263,7 @@ var DashMachines = (function () {
         html += '<option value="维修中">维修中</option>';
         html += '</select></div>';
 
-        window.Modal.openEdit('新增机床', html, function (close) {
+        window.Modal.openEdit('新增机床', html, function (close, fail) {
             var code = document.getElementById('nc_code').value.trim();
             var name = document.getElementById('nc_name').value.trim();
             if (!code) { window.showToast('请填写机床编号', 'warning'); document.getElementById('nc_code').focus(); return; }
@@ -266,6 +281,7 @@ var DashMachines = (function () {
                 refresh();
             }).catch(function (err) {
                 window.showToast('新增失败: ' + err.message, 'error');
+                fail();
             });
         });
     }
@@ -294,7 +310,7 @@ var DashMachines = (function () {
             html += '<option value="维修中"' + (m.status === '维修中' ? ' selected' : '') + '>维修中</option>';
             html += '</select></div>';
 
-            window.Modal.openEdit('编辑机床', html, function (close) {
+            window.Modal.openEdit('编辑机床', html, function (close, fail) {
                 API.machines.update(id, {
                     machine_code: document.getElementById('edit_mc_code').value.trim(),
                     machine_name: document.getElementById('edit_mc_name').value.trim(),
@@ -308,6 +324,7 @@ var DashMachines = (function () {
                     refresh();
                 }).catch(function (err) {
                     window.showToast('更新失败: ' + err.message, 'error');
+                    fail();
                 });
             });
         }).catch(function (err) {
@@ -326,11 +343,12 @@ var DashMachines = (function () {
                 close();
                 refresh();
             }).catch(function (err) {
-                window.showToast('删除失败: ' + err.message, 'error');
+                window.showToast(err.message, 'error');
                 close();
             });
         });
     }
+
 
     // ================================================================
     // 工具函数

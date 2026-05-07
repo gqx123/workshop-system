@@ -75,7 +75,7 @@ var DashMaintenance = (function () {
         '</div>' +
         '<div class="form-group"><label class="form-label">下次保养日期</label><input type="date" class="form-input" id="em_next" value="' + (r.next_maintenance_date || '') + '"></div>';
 
-      window.Modal.openEdit('编辑保养记录', html, async function (close) {
+      window.Modal.openEdit('编辑保养记录', html, async function (close, fail) {
         try {
           await API.maintenance.update(id, {
             maintenance_type: document.getElementById('em_type').value,
@@ -88,7 +88,7 @@ var DashMaintenance = (function () {
           window.showToast('更新成功', 'success');
           close();
           refresh();
-        } catch (err) { window.showToast('更新失败: ' + err.message, 'error'); }
+        } catch (err) { window.showToast('更新失败: ' + err.message, 'error'); fail(); }
       });
     }).catch(function (err) { window.showToast('加载失败: ' + err.message, 'error'); });
   }
