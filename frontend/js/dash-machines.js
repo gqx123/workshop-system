@@ -4,11 +4,16 @@ var DashMachines = (function () {
     var tableBody = document.getElementById('machineTableBody');
     var loadingEl = document.getElementById('machineLoading');
     var emptyEl = document.getElementById('machineEmpty');
-    var selectAllCb = document.getElementById('machineSelectAll');
-    var exportBtn = document.getElementById('exportQrcodesBtn');
-    var allMachines = [];
 
-    // 二维码弹窗
+    // 批量模式 DOM
+    var toolbarNormal = document.getElementById('machineToolbarNormal');
+    var toolbarBatch = document.getElementById('machineToolbarBatch');
+    var batchCountEl = document.getElementById('batchSelectedCount');
+    var batchExportBtn = document.getElementById('batchExportBtn');
+    var thCheckbox = document.getElementById('machineThCheckbox');
+    var selectAllCb = document.getElementById('machineSelectAll');  // 【新增】
+
+    // 二维码弹窗 DOM
     var qrModal = document.getElementById('qrcodeModal');
     var qrTitle = document.getElementById('qrcodeModalTitle');
     var qrClose = document.getElementById('qrcodeModalClose');
@@ -18,28 +23,30 @@ var DashMachines = (function () {
     var qrInfo = document.getElementById('qrcodeMachineInfo');
     var qrDownload = document.getElementById('qrcodeDownloadBtn');
 
-    function init() {
-        // 全选/反选
-        selectAllCb.addEventListener('change', function () {
-            var checkboxes = tableBody.querySelectorAll('.machine-cb');
-            for (var i = 0; i < checkboxes.length; i++) {
-                checkboxes[i].checked = selectAllCb.checked;
-            }
-            updateExportBtn();
-        });
+    var allMachines = [];
+    var batchMode = false;
 
+    function init() {
         // 二维码弹窗关闭
         qrClose.addEventListener('click', closeQrcodeModal);
         qrModal.addEventListener('click', function (e) {
             if (e.target === qrModal) closeQrcodeModal();
+        });
+
+        // 【新增】全选/反选
+        selectAllCb.addEventListener('change', function () {
+            var cbs = tableBody.querySelectorAll('.machine-cb');
+            for (var i = 0; i < cbs.length; i++) {
+                cbs[i].checked = selectAllCb.checked;
+            }
+            updateBatchCount();
         });
     }
 
     async function refresh() {
         showLoading(true);
         emptyEl.style.display = 'none';
-        selectAllCb.checked = false;
-        updateExportBtn();
+        if (batchMode) exitBatchMode();
         try {
             var machines = await API.machines.getAll();
             allMachines = machines;
@@ -59,8 +66,11 @@ var DashMachines = (function () {
         for (var i = 0; i < machines.length; i++) {
             var m = machines[i];
             var mobileUrl = '/mobile/?machine_id=' + m.id;
+
             rows += '<tr>';
-            rows += '<td><input type="checkbox" class="machine-cb" value="' + m.id + '" onchange="DashMachines.onCheckboxChange()"></td>';
+            if (batchMode) {
+                rows += '<td><input type="checkbox" class="machine-cb" value="' + m.id + '" onchange="DashMachines.onCbChange()"></td>';
+            }
             rows += '<td class="mono">' + esc(m.machine_code) + '</td>';
             rows += '<td>' + esc(m.machine_name) + '</td>';
             rows += '<td>' + esc(m.machine_type || '-') + '</td>';
@@ -79,35 +89,59 @@ var DashMachines = (function () {
         tableBody.innerHTML = rows;
     }
 
-    // ---- 复选框变化 ----
-    function onCheckboxChange() {
-        var checkboxes = tableBody.querySelectorAll('.machine-cb');
-        var allChecked = checkboxes.length > 0;
-        for (var i = 0; i < checkboxes.length; i++) {
-            if (!checkboxes[i].checked) { allChecked = false; break; }
+    // ================================================================
+    // 批量模式
+    // ================================================================
+
+    function enterBatchMode() {
+        batchMode = true;
+        toolbarNormal.style.display = 'none';
+        toolbarBatch.style.display = 'flex';
+        thCheckbox.style.display = '';
+        selectAllCb.checked = false;  // 【新增】重置全选状态
+        updateBatchCount();
+        renderTable(allMachines);
+    }
+
+    function exitBatchMode() {
+        batchMode = false;
+        toolbarNormal.style.display = 'flex';
+        toolbarBatch.style.display = 'none';
+        thCheckbox.style.display = 'none';
+        selectAllCb.checked = false;  // 【新增】重置全选状态
+        renderTable(allMachines);
+    }
+
+    function onCbChange() {
+        // 【新增】同步全选框状态
+        var cbs = tableBody.querySelectorAll('.machine-cb');
+        var allChecked = cbs.length > 0;
+        for (var i = 0; i < cbs.length; i++) {
+            if (!cbs[i].checked) { allChecked = false; break; }
         }
         selectAllCb.checked = allChecked;
-        updateExportBtn();
+        updateBatchCount();
+    }
+
+    function updateBatchCount() {
+        var ids = getSelectedIds();
+        batchCountEl.textContent = '已选 ' + ids.length + ' 台';
+        batchExportBtn.disabled = ids.length === 0;
     }
 
     function getSelectedIds() {
-        var checkboxes = tableBody.querySelectorAll('.machine-cb:checked');
+        var cbs = tableBody.querySelectorAll('.machine-cb:checked');
         var ids = [];
-        for (var i = 0; i < checkboxes.length; i++) {
-            ids.push(parseInt(checkboxes[i].value, 10));
+        for (var i = 0; i < cbs.length; i++) {
+            ids.push(parseInt(cbs[i].value, 10));
         }
         return ids;
     }
 
-    function updateExportBtn() {
-        var ids = getSelectedIds();
-        exportBtn.style.display = ids.length > 0 ? 'inline-flex' : 'none';
-        if (ids.length > 0) {
-            exportBtn.textContent = '导出选中二维码 (' + ids.length + ')';
-        }
-    }
+    // ================================================================
+    // 二维码弹窗
+    // ================================================================
 
-    // ---- 二维码弹窗 ----
     function openQrcodeModal(id) {
         var machine = null;
         for (var i = 0; i < allMachines.length; i++) {
@@ -120,7 +154,6 @@ var DashMachines = (function () {
         qrContent.style.display = 'none';
         qrModal.classList.add('open');
 
-        // 加载图片
         var url = API.baseUrl + '/api/machines/' + id + '/qrcode';
         var img = new Image();
         img.onload = function () {
@@ -141,7 +174,10 @@ var DashMachines = (function () {
         qrImg.src = '';
     }
 
-    // ---- 批量导出 ----
+    // ================================================================
+    // 批量导出
+    // ================================================================
+
     async function exportSelectedQrcodes() {
         var ids = getSelectedIds();
         if (!ids.length) {
@@ -149,8 +185,8 @@ var DashMachines = (function () {
             return;
         }
 
-        exportBtn.disabled = true;
-        exportBtn.textContent = '导出中...';
+        batchExportBtn.disabled = true;
+        batchExportBtn.textContent = '导出中...';
 
         try {
             var res = await fetch(API.baseUrl + '/api/machines/qrcodes/export', {
@@ -176,15 +212,22 @@ var DashMachines = (function () {
         } catch (err) {
             window.showToast('导出失败: ' + err.message, 'error');
         } finally {
-            exportBtn.disabled = false;
-            updateExportBtn();
+            batchExportBtn.textContent = '导出';
+            exitBatchMode();
         }
     }
 
-    // ---- 点检模板 ----
+    // ================================================================
+    // 点检模板
+    // ================================================================
+
     function openTplModal(machineId, machineCode) {
         window.TplModal.open(machineId, machineCode);
     }
+
+    // ================================================================
+    // 新增机床
+    // ================================================================
 
     function openCreateModal() {
         var html = '';
@@ -227,6 +270,10 @@ var DashMachines = (function () {
         });
     }
 
+    // ================================================================
+    // 编辑机床
+    // ================================================================
+
     function openEditModal(id) {
         API.machines.getById(id).then(function (m) {
             var html = '';
@@ -268,6 +315,10 @@ var DashMachines = (function () {
         });
     }
 
+    // ================================================================
+    // 删除机床
+    // ================================================================
+
     function confirmDelete(id, code) {
         window.Modal.openDelete('确定要删除机床 "' + code + '" 吗？如有关联记录将无法删除。', function (close) {
             API.machines.remove(id).then(function () {
@@ -280,6 +331,10 @@ var DashMachines = (function () {
             });
         });
     }
+
+    // ================================================================
+    // 工具函数
+    // ================================================================
 
     function statusTag(s) {
         var map = { '正常': 'tag-green', '停机': 'tag-yellow', '维修中': 'tag-red' };
@@ -309,7 +364,9 @@ var DashMachines = (function () {
         openQrcodeModal: openQrcodeModal,
         openTplModal: openTplModal,
         confirmDelete: confirmDelete,
-        onCheckboxChange: onCheckboxChange,
+        enterBatchMode: enterBatchMode,
+        exitBatchMode: exitBatchMode,
+        onCbChange: onCbChange,
         exportSelectedQrcodes: exportSelectedQrcodes,
     };
 })();

@@ -166,9 +166,11 @@
                 <div id="qrcodeContent" style="display:none;">
                     <p id="qrcodeMachineInfo" style="font-size:13px;color:var(--text-muted);margin-bottom:12px;"></p>
                     <img id="qrcodeImg"
-                        style="max-width:260px;border:1px solid var(--border);border-radius:var(--radius-sm);" alt="二维码">
+                        style="max-width:260px;border:1px solid var(--border);border-radius:var(--radius-sm);"
+                        alt="二维码">
                     <div style="margin-top:16px;">
-                        <a class="btn btn-primary" id="qrcodeDownloadBtn" download style="text-decoration:none;">下载二维码</a>
+                        <a class="btn btn-primary" id="qrcodeDownloadBtn" download
+                            style="text-decoration:none;">下载二维码</a>
                     </div>
                 </div>
             </div>
@@ -283,7 +285,8 @@
                     <div class="stats-grid" id="overviewStats"></div>
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
                         <h3 style="font-size:15px;font-weight:600;margin:0;">今日各机床状态</h3>
-                        <span style="font-size:13px;color:var(--text);font-weight:500;" id="machineCountOverview"></span>
+                        <span style="font-size:13px;color:var(--text);font-weight:500;"
+                            id="machineCountOverview"></span>
                         <div style="display:flex;gap:4px;">
                             <button class="btn filter-btn active" data-filter="all">全部</button>
                             <button class="btn filter-btn" data-filter="uninspected">未点检</button>
@@ -410,25 +413,31 @@
                 </div>
             </div>
 
+            <!-- 机床管理 -->
             <div class="panel" id="panel-machines">
                 <div class="main-header">
                     <h1 class="page-title">机床管理</h1>
                 </div>
                 <div class="main-body">
                     <div class="toolbar">
-                        <div class="toolbar-group">
+                        <div class="toolbar-group" id="machineToolbarNormal">
                             <button class="btn btn-primary" onclick="DashMachines.openCreateModal()">+ 新增机床</button>
-                            <button class="btn btn-ghost" id="exportQrcodesBtn" onclick="DashMachines.exportSelectedQrcodes()"
-                                style="display:none;">导出选中二维码</button>
+                            <button class="btn btn-ghost" onclick="DashMachines.enterBatchMode()">批量导出二维码</button>
                             <span style="font-size:13px;color:var(--text);font-weight:500;margin-left:8px;"
                                 id="machineCountMachines"></span>
+                        </div>
+                        <div class="toolbar-group" id="machineToolbarBatch" style="display:none;">
+                            <span style="font-size:13px;color:var(--text-muted);" id="batchSelectedCount">已选 0 台</span>
+                            <button class="btn btn-primary" id="batchExportBtn"
+                                onclick="DashMachines.exportSelectedQrcodes()">导出</button>
+                            <button class="btn btn-ghost" onclick="DashMachines.exitBatchMode()">取消</button>
                         </div>
                     </div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width:36px;"><input type="checkbox" id="machineSelectAll"></th>
+                                    <th style="width:36px;display:none;" id="machineThCheckbox"><input type="checkbox" id="machineSelectAll"></th>
                                     <th>编号</th>
                                     <th>名称</th>
                                     <th>类型</th>
@@ -450,6 +459,7 @@
                     </div>
                 </div>
             </div>
+
         </main>
     </div>
 
