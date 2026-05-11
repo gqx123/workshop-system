@@ -1,5 +1,5 @@
 /**
- * 移动端 - 设备点检页面逻辑
+ * 移动端 - 设备点检页面逻辑（含历史记录全屏弹窗 + 日期筛选）
  * URL 格式: /mobile/inspection.html?machine_id=1
  */
 ;(function () {
@@ -16,6 +16,16 @@
   var machineCodeEl = document.getElementById('machineCode');
   var machineNameEl = document.getElementById('machineName');
 
+  // 历史弹窗 DOM
+  var historyBtn = document.getElementById('historyBtn');
+  var historyOverlay = document.getElementById('historyOverlay');
+  var historyBackdrop = document.getElementById('historyBackdrop');
+  var historyClose = document.getElementById('historyClose');
+  var historyQueryBtn = document.getElementById('historyQueryBtn');
+  var historyFrom = document.getElementById('historyFrom');
+  var historyTo = document.getElementById('historyTo');
+  var historyBody = document.getElementById('historyBody');
+
   // ----------------------------------------------------------------
   // 从 URL 获取 machine_id
   // ----------------------------------------------------------------
@@ -28,16 +38,45 @@
   }
 
   // ----------------------------------------------------------------
-  // 点检结果存储：{ templateId: { result: '正常'|'异常', note: '' } }
+  // 点检结果存储
   // ----------------------------------------------------------------
   var inspResults = {};
 
   // ----------------------------------------------------------------
-  // 加载机床信息 + 点检模板
+  // 初始化
   // ----------------------------------------------------------------
   loadMachineInfo();
   loadTemplates();
+  setHistoryDefaultDates();
 
+  // 历史弹窗事件绑定
+  historyBtn.addEventListener('click', openHistory);
+  historyClose.addEventListener('click', closeHistory);
+  historyBackdrop.addEventListener('click', closeHistory);
+  historyQueryBtn.addEventListener('click', loadHistory);
+
+  function setHistoryDefaultDates() {
+    var today = new Date();
+    var y = today.getFullYear();
+    var m = String(today.getMonth() + 1).padStart(2, '0');
+    var d = String(today.getDate()).padStart(2, '0');
+    var dateStr = y + '-' + m + '-' + d;
+    historyFrom.value = dateStr;
+    historyTo.value = dateStr;
+  }
+
+  function openHistory() {
+    historyOverlay.classList.add('open');
+    loadHistory();
+  }
+
+  function closeHistory() {
+    historyOverlay.classList.remove('open');
+  }
+
+  // ----------------------------------------------------------------
+  // 加载机床信息 + 点检模板
+  // ----------------------------------------------------------------
   async function loadMachineInfo() {
     try {
       var machine = await API.machines.getById(machineId);
@@ -77,7 +116,6 @@
     var html = '';
     items.forEach(function (item, i) {
       var tid = item.id;
-      // 默认全部为"正常"
       inspResults[tid] = { result: '正常', note: '' };
 
       html +=
@@ -102,7 +140,6 @@
   window.setResult = function (tid, result, btnEl) {
     inspResults[tid].result = result;
 
-    // 更新按钮样式
     var item = btnEl.closest('.insp-item');
     var okBtn = item.querySelector('.toggle-ok');
     var badBtn = item.querySelector('.toggle-bad');
@@ -116,7 +153,6 @@
       badBtn.classList.add('active-bad');
     }
 
-    // 显示/隐藏备注
     var noteEl = document.getElementById('note-' + tid);
     if (result === '异常') {
       noteEl.style.display = 'block';
@@ -128,9 +164,6 @@
     }
   };
 
-  // ----------------------------------------------------------------
-  // 输入异常备注
-  // ----------------------------------------------------------------
   window.setNote = function (tid, value) {
     inspResults[tid].note = value.trim();
   };
@@ -138,7 +171,7 @@
   // ----------------------------------------------------------------
   // 提交点检记录
   // ----------------------------------------------------------------
-    submitBtn.addEventListener('click', async function () {
+  submitBtn.addEventListener('click', async function () {
     var operatorName = (document.getElementById('operator_name').value || '').trim();
     if (!operatorName) {
       showToast('请填写点检人员', 'warning');
@@ -146,18 +179,13 @@
       return;
     }
 
-    // 构造 details 数组
     var details = [];
     var items = inspListEl.querySelectorAll('.insp-item');
     items.forEach(function (el) {
       var tid = parseInt(el.getAttribute('data-tid'), 10);
       var name = el.getAttribute('data-name');
       var r = inspResults[tid] || { result: '正常', note: '' };
-      details.push({
-        item_name: name,
-        result: r.result,
-        note: r.note,
-      });
+      details.push({ item_name: name, result: r.result, note: r.note });
     });
 
     if (!details.length) {
@@ -178,7 +206,6 @@
       showToast('点检记录已提交！ID: ' + result.id, 'success');
       resetForm();
     } catch (err) {
-      // 今日已点检的特殊处理
       if (err.message && err.message.indexOf('已点检') >= 0) {
         showToast('该设备今日已点检，不能重复提交。如需重新填写，请联系管理员删除今日记录后重试', 'error');
       } else {
@@ -191,13 +218,103 @@
   });
 
   // ----------------------------------------------------------------
+  // 历史记录弹窗
+  // ----------------------------------------------------------------
+  async function loadHistory() {
+    historyBody.innerHTML =
+      '<div class="loading" style="padding:32px 0;">' +
+        '<div class="loading-spinner"></div>' +
+        '<span>加载中...</span>' +
+      '</div>';
+
+    try {
+      var queryParams = { machine_id: machineId };
+      var from = historyFrom.value;
+      var to = historyTo.value;
+      if (from) queryParams.from = from + ' 00:00:00';
+      if (to) queryParams.to = to + ' 23:59:59';
+
+      var records = await API.inspection.list(queryParams);
+
+      if (!records.length) {
+        historyBody.innerHTML =
+          '<div class="empty-state" style="padding:40px 0;">' +
+            '<div class="empty-text">该时间段内无点检记录</div>' +
+          '</div>';
+        return;
+      }
+      renderHistory(records);
+    } catch (err) {
+      historyBody.innerHTML =
+        '<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">加载失败: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  function renderHistory(records) {
+    var html = '';
+    for (var i = 0; i < records.length; i++) {
+      var r = records[i];
+      var details = r.details || [];
+      var total = details.length;
+      var abnormal = 0;
+      for (var j = 0; j < details.length; j++) {
+        if (details[j].result === '异常') abnormal++;
+      }
+
+      var tagHtml;
+      if (total === 0) {
+        tagHtml = '<span class="tag tag-primary" style="font-size:12px;padding:2px 8px;">无明细</span>';
+      } else if (abnormal === 0) {
+        tagHtml = '<span class="tag tag-green" style="font-size:12px;padding:2px 8px;">全部正常</span>';
+      } else {
+        tagHtml = '<span class="tag tag-red" style="font-size:12px;padding:2px 8px;">' + abnormal + '项异常</span>';
+      }
+
+      var dateStr = r.created_at || '';
+      if (dateStr.length > 16) dateStr = dateStr.substring(5, 16);
+
+      html += '<div class="history-item">';
+      html += '  <div class="hi-top" onclick="toggleHistoryDetail(this)">';
+      html += '    <div class="hi-left">';
+      html += '      <span class="hi-date">' + esc(dateStr) + '</span>';
+      html += '      <span class="hi-operator">' + esc(r.operator_name || '-') + '</span>';
+      html += '      ' + tagHtml;
+      html += '    </div>';
+      html += '    <span class="hi-arrow">&#8250;</span>';
+      html += '  </div>';
+
+      html += '  <div class="hi-detail">';
+      for (var k = 0; k < details.length; k++) {
+        var d = details[k];
+        var dTagCls = d.result === '正常' ? 'tag-green' : 'tag-red';
+        var noteHtml = d.note ? '<span class="hi-detail-note">(' + esc(d.note) + ')</span>' : '';
+        html += '<div class="hi-detail-row">';
+        html += '  <span class="hi-detail-name">' + esc(d.item_name) + '</span>';
+        html += '  ' + noteHtml;
+        html += '  <span class="tag ' + dTagCls + '" style="font-size:12px;padding:2px 8px;">' + esc(d.result) + '</span>';
+        html += '</div>';
+      }
+      if (r.remark) {
+        html += '<div class="hi-remark">备注：' + esc(r.remark) + '</div>';
+      }
+      html += '  </div>';
+      html += '</div>';
+    }
+    historyBody.innerHTML = html;
+  }
+
+  window.toggleHistoryDetail = function (el) {
+    var item = el.closest('.history-item');
+    item.classList.toggle('expanded');
+  };
+
+  // ----------------------------------------------------------------
   // 重置表单
   // ----------------------------------------------------------------
   function resetForm() {
     document.getElementById('operator_name').value = '';
     document.getElementById('remark').value = '';
 
-    // 重置所有项目为正常
     var items = inspListEl.querySelectorAll('.insp-item');
     items.forEach(function (el) {
       var tid = parseInt(el.getAttribute('data-tid'), 10);
@@ -236,9 +353,7 @@
     container.appendChild(toast);
     setTimeout(function () {
       toast.classList.add('toast-out');
-      toast.addEventListener('animationend', function () {
-        toast.remove();
-      });
+      toast.addEventListener('animationend', function () { toast.remove(); });
     }, 2000);
   }
 
