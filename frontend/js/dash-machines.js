@@ -11,7 +11,7 @@ var DashMachines = (function () {
     var batchCountEl = document.getElementById('batchSelectedCount');
     var batchExportBtn = document.getElementById('batchExportBtn');
     var thCheckbox = document.getElementById('machineThCheckbox');
-    var selectAllCb = document.getElementById('machineSelectAll');  // 【新增】
+    var selectAllCb = document.getElementById('machineSelectAll');
 
     // 二维码弹窗 DOM
     var qrModal = document.getElementById('qrcodeModal');
@@ -23,6 +23,12 @@ var DashMachines = (function () {
     var qrInfo = document.getElementById('qrcodeMachineInfo');
     var qrDownload = document.getElementById('qrcodeDownloadBtn');
 
+    // 作业指导书弹窗 DOM
+    var instrModal = document.getElementById('instrModal');
+    var instrTitle = document.getElementById('instrModalTitle');
+    var instrClose = document.getElementById('instrModalClose');
+    var instrBody = document.getElementById('instrModalBody');
+
     var allMachines = [];
     var batchMode = false;
 
@@ -33,6 +39,12 @@ var DashMachines = (function () {
             if (e.target === qrModal) closeQrcodeModal();
         });
 
+        // 作业指导书弹窗关闭
+        instrClose.addEventListener('click', closeInstrModal);
+        instrModal.addEventListener('click', function (e) {
+            if (e.target === instrModal) closeInstrModal();
+        });
+
         // 全选/反选
         selectAllCb.addEventListener('change', function () {
             var cbs = tableBody.querySelectorAll('.machine-cb');
@@ -41,17 +53,7 @@ var DashMachines = (function () {
             }
             updateBatchCount();
         });
-
-        // 监听点检模板弹窗关闭，自动刷新机床列表
-        var tplOverlay = document.getElementById('tplModal');
-        var tplObserver = new MutationObserver(function () {
-            if (!tplOverlay.classList.contains('open')) {
-                refresh();
-            }
-        });
-        tplObserver.observe(tplOverlay, { attributes: true, attributeFilter: ['class'] });
     }
-
 
     async function refresh() {
         showLoading(true);
@@ -86,8 +88,10 @@ var DashMachines = (function () {
             if (m.tpl_count === 0) {
                 rows += ' <span class="tag tag-yellow" style="font-size:11px;padding:2px 6px;cursor:pointer;" onclick="DashMachines.openTplModal(' + m.id + ',\'' + escAttr(m.machine_code) + '\')">未配置点检模板</span>';
             }
+            if (!m.instruction_image) {
+                rows += ' <span class="tag tag-yellow" style="font-size:11px;padding:2px 6px;cursor:pointer;" onclick="DashMachines.openInstrModal(' + m.id + ')">未上传作业指导书</span>';
+            }
             rows += '</td>';
-
             rows += '<td>' + esc(m.machine_type || '-') + '</td>';
             rows += '<td>' + esc(m.location || '-') + '</td>';
             rows += '<td>' + statusTag(m.status) + '</td>';
@@ -95,6 +99,7 @@ var DashMachines = (function () {
             rows += '<td style="white-space:nowrap;">';
             rows += '<a href="' + mobileUrl + '" target="_blank" style="font-size:12px;margin-right:8px;">扫码页</a>';
             rows += '<button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;margin-right:4px;" onclick="DashMachines.openTplModal(' + m.id + ',\'' + escAttr(m.machine_code) + '\')">点检模板</button>';
+            rows += '<button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;margin-right:4px;" onclick="DashMachines.openInstrModal(' + m.id + ')">作业指导书</button>';
             rows += '<button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;margin-right:4px;" onclick="DashMachines.openEditModal(' + m.id + ')">编辑</button>';
             rows += '<button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;margin-right:4px;" onclick="DashMachines.openQrcodeModal(' + m.id + ')">二维码</button>';
             rows += '<button class="btn btn-danger" style="padding:3px 10px;font-size:12px;" onclick="DashMachines.confirmDelete(' + m.id + ',\'' + escAttr(m.machine_code) + '\')">删除</button>';
@@ -113,7 +118,7 @@ var DashMachines = (function () {
         toolbarNormal.style.display = 'none';
         toolbarBatch.style.display = 'flex';
         thCheckbox.style.display = '';
-        selectAllCb.checked = false;  // 【新增】重置全选状态
+        selectAllCb.checked = false;
         updateBatchCount();
         renderTable(allMachines);
     }
@@ -123,12 +128,11 @@ var DashMachines = (function () {
         toolbarNormal.style.display = 'flex';
         toolbarBatch.style.display = 'none';
         thCheckbox.style.display = 'none';
-        selectAllCb.checked = false;  // 【新增】重置全选状态
+        selectAllCb.checked = false;
         renderTable(allMachines);
     }
 
     function onCbChange() {
-        // 【新增】同步全选框状态
         var cbs = tableBody.querySelectorAll('.machine-cb');
         var allChecked = cbs.length > 0;
         for (var i = 0; i < cbs.length; i++) {
@@ -187,6 +191,163 @@ var DashMachines = (function () {
     function closeQrcodeModal() {
         qrModal.classList.remove('open');
         qrImg.src = '';
+    }
+
+    // ================================================================
+    // 作业指导书弹窗
+    // ================================================================
+
+    function openInstrModal(machineId) {
+        var machine = null;
+        for (var i = 0; i < allMachines.length; i++) {
+            if (allMachines[i].id === machineId) { machine = allMachines[i]; break; }
+        }
+        instrTitle.textContent = '作业指导书 - ' + (machine ? machine.machine_code : '');
+        instrModal.classList.add('open');
+        renderInstrContent(machine);
+    }
+
+    function closeInstrModal() {
+        instrModal.classList.remove('open');
+    }
+
+    function renderInstrContent(machine) {
+        if (!machine) {
+            instrBody.innerHTML = '<div style="color:var(--red);font-size:13px;">机床数据加载失败</div>';
+            return;
+        }
+
+        var hasImage = machine.instruction_image && machine.instruction_image.length > 0;
+        var html = '';
+
+        if (hasImage) {
+            html += '<div style="text-align:center;margin-bottom:16px;">';
+            html += '<img src="' + API.baseUrl + '/api/machines/' + machine.id + '/instruction/image?t=' + Date.now() + '" ';
+            html += 'style="max-width:100%;max-height:400px;border:1px solid var(--border);border-radius:var(--radius-sm);" alt="作业指导书">';
+            html += '</div>';
+            html += '<div style="display:flex;gap:8px;margin-bottom:16px;">';
+            html += '<label class="btn btn-primary" style="cursor:pointer;">更换图片<input type="file" accept="image/*" style="display:none;" onchange="DashMachines.handleInstrUpload(this,' + machine.id + ')"></label>';
+            html += '<button class="btn btn-danger" onclick="DashMachines.deleteInstr(' + machine.id + ')">删除图片</button>';
+            html += '</div>';
+        } else {
+            html += '<div style="text-align:center;padding:24px 0 16px;">';
+            html += '<div style="font-size:40px;opacity:0.3;margin-bottom:8px;">&#128196;</div>';
+            html += '<div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">暂无作业指导书</div>';
+            html += '<label class="btn btn-primary" style="cursor:pointer;">上传图片<input type="file" accept="image/*" style="display:none;" onchange="DashMachines.handleInstrUpload(this,' + machine.id + ')"></label>';
+            html += '</div>';
+        }
+
+        // 从其他设备复制
+        var hasInstrMachines = [];
+        for (var i = 0; i < allMachines.length; i++) {
+            if (allMachines[i].id !== machine.id && allMachines[i].instruction_image && allMachines[i].instruction_image.length > 0) {
+                hasInstrMachines.push(allMachines[i]);
+            }
+        }
+
+        if (hasInstrMachines.length > 0) {
+            html += '<div style="border-top:1px solid var(--border);padding-top:16px;">';
+            html += '<div style="display:flex;gap:8px;align-items:center;padding:12px;background:var(--surface-2);border-radius:var(--radius-sm);">';
+            html += '<label style="font-size:12px;color:var(--text-muted);white-space:nowrap;">从其他设备复制：</label>';
+            html += '<select class="form-select" id="instrCopySource" style="flex:1;padding:7px 10px;font-size:13px;">';
+            html += '<option value="">请选择源设备</option>';
+            for (var j = 0; j < hasInstrMachines.length; j++) {
+                html += '<option value="' + hasInstrMachines[j].id + '">' + esc(hasInstrMachines[j].machine_code) + ' ' + esc(hasInstrMachines[j].machine_name) + '</option>';
+            }
+            html += '</select>';
+            html += '<button class="btn btn-primary" style="padding:7px 14px;font-size:12px;" onclick="DashMachines.copyInstr(' + machine.id + ')">复制</button>';
+            html += '</div>';
+            html += '</div>';
+        }
+
+        instrBody.innerHTML = html;
+    }
+
+    async function handleInstrUpload(input, machineId) {
+        var file = input.files[0];
+        if (!file) return;
+
+        if (file.size > 20 * 1024 * 1024) {
+            window.showToast('文件过大，最大支持 20MB', 'warning');
+            input.value = '';
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            var res = await fetch(API.baseUrl + '/api/machines/' + machineId + '/instruction', {
+                method: 'POST',
+                body: formData,
+            });
+            if (!res.ok) {
+                var err = await res.json().catch(function () { return {}; });
+                throw new Error(err.error || '上传失败');
+            }
+            window.showToast('上传成功', 'success');
+            allMachines = await API.machines.getAll();
+            var machine = null;
+            for (var i = 0; i < allMachines.length; i++) {
+                if (allMachines[i].id === machineId) { machine = allMachines[i]; break; }
+            }
+            renderInstrContent(machine);
+            renderTable(allMachines);
+        } catch (err) {
+            window.showToast('上传失败: ' + err.message, 'error');
+        }
+        input.value = '';
+    }
+
+    async function deleteInstr(machineId) {
+        if (!confirm('确定要删除该设备的作业指导书吗？')) return;
+        try {
+            var res = await fetch(API.baseUrl + '/api/machines/' + machineId + '/instruction', { method: 'DELETE' });
+            if (!res.ok) {
+                var err = await res.json().catch(function () { return {}; });
+                throw new Error(err.error || '删除失败');
+            }
+            window.showToast('删除成功', 'success');
+            allMachines = await API.machines.getAll();
+            var machine = null;
+            for (var i = 0; i < allMachines.length; i++) {
+                if (allMachines[i].id === machineId) { machine = allMachines[i]; break; }
+            }
+            renderInstrContent(machine);
+            renderTable(allMachines);
+        } catch (err) {
+            window.showToast('删除失败: ' + err.message, 'error');
+        }
+    }
+
+    async function copyInstr(targetMachineId) {
+        var sourceSelect = document.getElementById('instrCopySource');
+        var sourceId = parseInt(sourceSelect.value, 10);
+        if (!sourceId) {
+            window.showToast('请选择源设备', 'warning');
+            return;
+        }
+        try {
+            var res = await fetch(API.baseUrl + '/api/machines/instruction/copy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source_machine_id: sourceId, target_machine_id: targetMachineId }),
+            });
+            if (!res.ok) {
+                var err = await res.json().catch(function () { return {}; });
+                throw new Error(err.error || '复制失败');
+            }
+            window.showToast('复制成功', 'success');
+            allMachines = await API.machines.getAll();
+            var machine = null;
+            for (var i = 0; i < allMachines.length; i++) {
+                if (allMachines[i].id === targetMachineId) { machine = allMachines[i]; break; }
+            }
+            renderInstrContent(machine);
+            renderTable(allMachines);
+        } catch (err) {
+            window.showToast('复制失败: ' + err.message, 'error');
+        }
     }
 
     // ================================================================
@@ -349,7 +510,6 @@ var DashMachines = (function () {
         });
     }
 
-
     // ================================================================
     // 工具函数
     // ================================================================
@@ -381,6 +541,10 @@ var DashMachines = (function () {
         openEditModal: openEditModal,
         openQrcodeModal: openQrcodeModal,
         openTplModal: openTplModal,
+        openInstrModal: openInstrModal,
+        handleInstrUpload: handleInstrUpload,
+        deleteInstr: deleteInstr,
+        copyInstr: copyInstr,
         confirmDelete: confirmDelete,
         enterBatchMode: enterBatchMode,
         exitBatchMode: exitBatchMode,

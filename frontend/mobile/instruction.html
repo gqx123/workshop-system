@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作业指导书 - 车间产线记录系统</title>
+    <link rel="stylesheet" href="/frontend/css/variables.css">
+    <link rel="stylesheet" href="/frontend/css/mobile.css">
+    <style>
+        body {
+            background: #f5f5f5;
+        }
+
+        .instr-viewer {
+            padding: 12px 16px 24px;
+        }
+
+        .instr-viewer img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: var(--radius);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            background: #fff;
+        }
+
+        .instr-empty {
+            text-align: center;
+            padding: 80px 24px;
+            color: var(--text-muted);
+        }
+
+        .instr-empty .instr-empty-icon {
+            font-size: 56px;
+            opacity: 0.25;
+            margin-bottom: 16px;
+        }
+
+        .instr-empty .instr-empty-text {
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .instr-empty .instr-empty-sub {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+
+<body data-theme="light">
+
+    <div class="header">
+        <a href="#" id="backBtn"
+            style="position:absolute;left:16px;font-size:20px;color:var(--text);text-decoration:none;">&#8249;</a>
+        <h1 class="header-title">作业指导书</h1>
+    </div>
+
+    <div class="header-machine" id="machineInfo" style="display:none;">
+        <span class="machine-code" id="machineCode"></span>
+        <span class="machine-name" id="machineName"></span>
+    </div>
+
+    <div class="instr-viewer" id="instrViewer">
+        <div class="loading" id="instrLoading">
+            <div class="loading-spinner"></div>
+            <span>加载中...</span>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/frontend/js/api.js"></script>
+    <script>
+        (function () {
+            'use strict';
+
+            var params = new URLSearchParams(window.location.search);
+            var machineId = parseInt(params.get('machine_id'), 10);
+
+            // 返回按钮
+            document.getElementById('backBtn').href =
+                '/mobile/?machine_id=' + machineId;
+
+            if (!machineId || isNaN(machineId)) {
+                showToast('缺少 machine_id 参数', 'error');
+                return;
+            }
+
+            loadMachineInfo();
+            loadInstruction();
+
+            async function loadMachineInfo() {
+                try {
+                    var machine = await API.machines.getById(machineId);
+                    document.getElementById('machineCode').textContent = machine.machine_code;
+                    document.getElementById('machineName').textContent = machine.machine_name;
+                    document.getElementById('machineInfo').style.display = 'flex';
+                } catch (err) {
+                    showToast('加载机床信息失败: ' + err.message, 'error');
+                }
+            }
+
+            async function loadInstruction() {
+                var viewer = document.getElementById('instrViewer');
+                try {
+                    var machine = await API.machines.getById(machineId);
+                    var hasImage = machine.instruction_image && machine.instruction_image.length > 0;
+
+                    if (hasImage) {
+                        var imgUrl = API.baseUrl + '/api/machines/' + machineId + '/instruction/image?t=' + Date.now();
+                        viewer.innerHTML = '<img src="' + imgUrl + '" alt="作业指导书">';
+                    } else {
+                        viewer.innerHTML =
+                            '<div class="instr-empty">' +
+                            '  <div class="instr-empty-icon">&#128196;</div>' +
+                            '  <div class="instr-empty-text">暂无作业指导书</div>' +
+                            '  <div class="instr-empty-sub">请联系管理员在后台上传</div>' +
+                            '</div>';
+                    }
+                } catch (err) {
+                    viewer.innerHTML =
+                        '<div class="instr-empty">' +
+                        '  <div class="instr-empty-text" style="color:var(--red);">加载失败</div>' +
+                        '  <div class="instr-empty-sub">' + err.message + '</div>' +
+                        '</div>';
+                }
+            }
+
+            function showToast(message, type) {
+                type = type || 'success';
+                var container = document.getElementById('toastContainer');
+                var toast = document.createElement('div');
+                toast.className = 'toast toast-' + type;
+                toast.textContent = message;
+                container.appendChild(toast);
+                setTimeout(function () {
+                    toast.classList.add('toast-out');
+                    toast.addEventListener('animationend', function () { toast.remove(); });
+                }, 2000);
+            }
+        })();
+    </script>
+    
+</body>
+
+</html>

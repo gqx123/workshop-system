@@ -93,6 +93,11 @@ class Database:
         conn = self.get_connection()
         try:
             conn.executescript(SCHEMA)
+            # 迁移：machines 表加 instruction_image 字段（兼容旧数据库）
+            try:
+                conn.execute("ALTER TABLE machines ADD COLUMN instruction_image TEXT NOT NULL DEFAULT ''")
+            except sqlite3.OperationalError:
+                pass  # 字段已存在
             conn.commit()
             logger.info("数据库表初始化完成")
         except sqlite3.Error as e:

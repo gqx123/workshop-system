@@ -13,13 +13,15 @@
     return;
   }
 
-  // 设置三个链接的 href
+  // 设置链接 href
   document.getElementById('linkProduction').href =
     '/frontend/mobile/production.html?machine_id=' + machineId;
   document.getElementById('linkInspection').href =
     '/frontend/mobile/inspection.html?machine_id=' + machineId;
   document.getElementById('linkFault').href =
     '/frontend/mobile/fault.html?machine_id=' + machineId;
+  document.getElementById('linkInstruction').href =
+    '/frontend/mobile/instruction.html?machine_id=' + machineId;
 
   // 加载机床信息
   loadMachineInfo();

@@ -1,9 +1,12 @@
 """机床相关路由"""
-from flask import Blueprint, jsonify, request, make_response
+import os
+from flask import Blueprint, jsonify, request, make_response, send_file
 from services.machine_service import (
     get_all_machines, get_machine_by_id, create_machine,
     update_machine, delete_machine,
     get_machine_qrcode, export_machines_qrcodes_pdf,
+    upload_instruction_image, delete_instruction_image,
+    copy_instruction_image, get_instruction_image_path,
 )
 
 machines_bp = Blueprint("machines", __name__, url_prefix="/api/machines")
@@ -79,6 +82,8 @@ def remove_machine(machine_id: int):
         return jsonify({"error": str(e)}), 500
 
 
+# ---- 二维码 ----
+
 @machines_bp.route("/<int:machine_id>/qrcode", methods=["GET"])
 def machine_qrcode(machine_id: int):
     """GET /api/machines/<id>/qrcode — 获取单台机床二维码 PNG"""
@@ -112,5 +117,69 @@ def export_qrcodes():
         resp.headers["Content-Type"] = "application/pdf"
         resp.headers["Content-Disposition"] = "attachment; filename=machine_qrcodes.pdf"
         return resp
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ---- 作业指导书 ----
+
+@machines_bp.route("/<int:machine_id>/instruction/image", methods=["GET"])
+def get_instruction_img(machine_id: int):
+    """GET /api/machines/<id>/instruction/image — 获取作业指导书图片"""
+    try:
+        path = get_instruction_image_path(machine_id)
+        if not path:
+            return jsonify({"error": "暂无作业指导书"}), 404
+        return send_file(path)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@machines_bp.route("/<int:machine_id>/instruction", methods=["POST"])
+def upload_instruction(machine_id: int):
+    """POST /api/machines/<id>/instruction — 上传作业指导书"""
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "没有上传文件"}), 400
+        file = request.files["file"]
+        if file.filename == "":
+            return jsonify({"error": "未选择文件"}), 400
+        upload_instruction_image(machine_id, file)
+        return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@machines_bp.route("/<int:machine_id>/instruction", methods=["DELETE"])
+def remove_instruction(machine_id: int):
+    """DELETE /api/machines/<id>/instruction — 删除作业指导书"""
+    try:
+        ok = delete_instruction_image(machine_id)
+        if not ok:
+            return jsonify({"error": "该设备没有作业指导书"}), 404
+        return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@machines_bp.route("/instruction/copy", methods=["POST"])
+def copy_instr():
+    """POST /api/machines/instruction/copy — 复制作业指导书"""
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({"error": "请求体必须为 JSON"}), 400
+        source_id = data.get("source_machine_id")
+        target_id = data.get("target_machine_id")
+        if not source_id or not target_id:
+            return jsonify({"error": "缺少 source_machine_id 或 target_machine_id"}), 400
+        copy_instruction_image(int(source_id), int(target_id))
+        return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500

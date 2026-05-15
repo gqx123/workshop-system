@@ -13,14 +13,15 @@ CREATE TABLE IF NOT EXISTS system_config (
 -- 机床设备表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS machines (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    machine_code    TEXT    NOT NULL UNIQUE,
-    machine_name    TEXT    NOT NULL,
-    machine_type    TEXT    NOT NULL DEFAULT '',
-    location        TEXT    NOT NULL DEFAULT '',
-    status          TEXT    NOT NULL DEFAULT '正常',
-    operator_name   TEXT    NOT NULL DEFAULT '',
-    created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_code        TEXT    NOT NULL UNIQUE,
+    machine_name        TEXT    NOT NULL,
+    machine_type        TEXT    NOT NULL DEFAULT '',
+    location            TEXT    NOT NULL DEFAULT '',
+    status              TEXT    NOT NULL DEFAULT '正常',
+    operator_name       TEXT    NOT NULL DEFAULT '',
+    instruction_image   TEXT    NOT NULL DEFAULT '',
+    created_at          TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
 -- ============================================================

@@ -25,3 +25,4 @@ Thumbs.db
 workshop.db
 *.log
 qrcodes/
+uploads/
