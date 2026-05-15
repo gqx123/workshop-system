@@ -1,5 +1,5 @@
 /**
- * 移动端 - 设备点检页面逻辑（延迟上传 + 压缩 + 历史弹窗）
+ * 移动端 - 设备点检页面逻辑（延迟上传 + 压缩 + 历史弹窗 + 图片查看器）
  * URL 格式: /mobile/inspection.html?machine_id=1
  */
 ;(function () {
@@ -26,6 +26,15 @@
   var historyTo = document.getElementById('historyTo');
   var historyBody = document.getElementById('historyBody');
 
+  // 图片查看器
+  var imgViewer = document.getElementById('imgViewerOverlay');
+  var viewerCloseBtn = document.getElementById('viewerClose');
+  var viewerScroll = document.getElementById('viewerScroll');
+  var viewerImgWrap = document.getElementById('viewerImgWrap');
+  var viewerImg = document.getElementById('viewerImg');
+  var zoomInBtn = document.getElementById('zoomInBtn');
+  var zoomOutBtn = document.getElementById('zoomOutBtn');
+
   // ----------------------------------------------------------------
   // 从 URL 获取 machine_id
   // ----------------------------------------------------------------
@@ -43,6 +52,13 @@
   var inspResults = {};
   var templateRequiresPhoto = {};
 
+  // 图片查看器状态
+  var viewerScale = 1;
+  var viewerMinScale = 1;
+  var viewerMaxScale = 4;
+  var viewerStartDist = 0;
+  var viewerStartScale = 1;
+
   // ----------------------------------------------------------------
   // 初始化
   // ----------------------------------------------------------------
@@ -55,6 +71,27 @@
   historyClose.addEventListener('click', closeHistory);
   historyBackdrop.addEventListener('click', closeHistory);
   historyQueryBtn.addEventListener('click', loadHistory);
+
+  viewerCloseBtn.addEventListener('click', closeViewer);
+  zoomInBtn.addEventListener('click', function () { viewerZoomBy(1.5); });
+  zoomOutBtn.addEventListener('click', function () { viewerZoomBy(1 / 1.5); });
+
+  viewerImg.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+      viewerStartDist = getTouchDist(e.touches);
+      viewerStartScale = viewerScale;
+    }
+  }, { passive: true });
+
+  viewerImg.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      var dist = getTouchDist(e.touches);
+      var scale = viewerStartScale * (dist / viewerStartDist);
+      scale = Math.max(viewerMinScale, Math.min(scale, viewerMaxScale));
+      viewerSetScale(scale);
+    }
+  }, { passive: false });
 
   function setHistoryDefaultDates() {
     var today = new Date();
@@ -73,6 +110,50 @@
 
   function closeHistory() {
     historyOverlay.classList.remove('open');
+  }
+
+  // ----------------------------------------------------------------
+  // 图片查看器
+  // ----------------------------------------------------------------
+  function openViewer(imgUrl) {
+    viewerImg.src = imgUrl;
+    viewerScale = 1;
+    viewerScroll.scrollTop = 0;
+    viewerScroll.scrollLeft = 0;
+    imgViewer.classList.add('open');
+    viewerImg.onload = function () {
+      viewerSetScale(1);
+    };
+  }
+
+  function closeViewer() {
+    imgViewer.classList.remove('open');
+    viewerImg.src = '';
+  }
+
+  function viewerZoomBy(factor) {
+    var newScale = Math.max(viewerMinScale, Math.min(viewerScale * factor, viewerMaxScale));
+    viewerSetScale(newScale);
+  }
+
+  function viewerSetScale(newScale) {
+    var scrollW = viewerScroll.clientWidth;
+    var scrollH = viewerScroll.clientHeight;
+    var ratioX = (scrollW > 0) ? (viewerScroll.scrollLeft + scrollW / 2) / (scrollW * viewerScale) : 0;
+    var ratioY = (scrollH > 0) ? (viewerScroll.scrollTop + scrollH / 2) / (scrollH * viewerScale) : 0;
+
+    viewerScale = newScale;
+    viewerImgWrap.style.width = (scrollW * viewerScale) + 'px';
+    viewerImgWrap.style.minHeight = (scrollH * viewerScale) + 'px';
+
+    viewerScroll.scrollLeft = scrollW * viewerScale * ratioX - scrollW / 2;
+    viewerScroll.scrollTop = scrollH * viewerScale * ratioY - scrollH / 2;
+  }
+
+  function getTouchDist(touches) {
+    var dx = touches[0].clientX - touches[1].clientX;
+    var dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   // ----------------------------------------------------------------
@@ -199,10 +280,8 @@
       return;
     }
 
-    // 存储文件对象，提交时再上传
     inspResults[tid].photoFile = file;
 
-    // 本地预览
     var reader = new FileReader();
     reader.onload = function (e) {
       document.getElementById('photoThumb-' + tid).src = e.target.result;
@@ -255,7 +334,7 @@
   }
 
   // ----------------------------------------------------------------
-  // 提交点检记录（延迟上传：照片和数据一起发送）
+  // 提交点检记录
   // ----------------------------------------------------------------
   submitBtn.addEventListener('click', async function () {
     var operatorName = (document.getElementById('operator_name').value || '').trim();
@@ -267,7 +346,6 @@
 
     var inspItems = inspListEl.querySelectorAll('.insp-card');
 
-    // 校验必填照片
     for (var i = 0; i < inspItems.length; i++) {
       var tid = parseInt(inspItems[i].getAttribute('data-tid'), 10);
       var rp = inspItems[i].getAttribute('data-requires-photo') === '1';
@@ -284,9 +362,9 @@
 
     submitBtn.disabled = true;
     submitBtn.textContent = '提交中...';
+    document.getElementById('uploadOverlay').classList.add('open');
 
     try {
-      // 构建 FormData：JSON 数据 + 压缩后的照片
       var formData = new FormData();
       var details = [];
 
@@ -300,7 +378,7 @@
 
         if (r.photoFile) {
           item.template_id = tid2;
-          var compressed = await compressImage(r.photoFile, 1600, 0.7);
+          var compressed = await compressImage(r.photoFile, 1024, 0.5);
           formData.append('photo_' + tid2, compressed, 'photo_' + tid2 + '.jpg');
         }
 
@@ -337,6 +415,7 @@
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = '提交点检记录';
+      document.getElementById('uploadOverlay').classList.remove('open');
     }
   });
 
@@ -408,7 +487,8 @@
         var noteHtml = d.note ? '<span class="hi-detail-note">(' + esc(d.note) + ')</span>' : '';
         var photoHtml = '';
         if (d.photo) {
-          photoHtml = '<img class="hi-detail-photo" src="' + API.baseUrl + '/api/inspection-photos/' + d.photo + '" onclick="window.open(this.src)" title="查看照片">';
+          var photoUrl = API.baseUrl + '/api/inspection-photos/' + d.photo;
+          photoHtml = '<img class="hi-detail-photo" src="' + photoUrl + '" onclick="event.stopPropagation();window.__openInspPhoto(\'' + photoUrl + '\')" title="查看照片">';
         }
         html += '<div class="hi-detail-row">';
         html += '  <span class="hi-detail-name">' + esc(d.item_name) + '</span>';
@@ -429,6 +509,11 @@
   window.toggleHistoryDetail = function (el) {
     var item = el.closest('.history-item');
     item.classList.toggle('expanded');
+  };
+
+  // 暴露给历史记录里的照片点击
+  window.__openInspPhoto = function (url) {
+    openViewer(url);
   };
 
   // ----------------------------------------------------------------
