@@ -110,14 +110,34 @@ def import_template():
 
 @inspection_bp.route("/api/inspection", methods=["POST"])
 def add_inspection():
+    """POST /api/inspection — 提交点检记录（支持 multipart 带照片）"""
     try:
-        data = request.get_json(silent=True)
+        # 支持 multipart/form-data（带照片）和 application/json（纯文字）
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            data_str = request.form.get('data')
+            if not data_str:
+                return jsonify({"error": "缺少 data 字段"}), 400
+            import json as json_mod
+            data = json_mod.loads(data_str)
+        else:
+            data = request.get_json(silent=True)
+
         if not data:
             return jsonify({"error": "请求体必须为 JSON"}), 400
+
         mid = data.get("machine_id")
         if mid and check_today_inspected(int(mid)):
             return jsonify({"error": "该设备今日已点检，不能重复提交。如需重新填写，请联系管理员删除今日记录后重试"}), 400
-        new_id = create_inspection(data)
+
+        # 收集照片文件（key 格式：photo_<template_id>）
+        photo_files = {}
+        if request.files:
+            for key in request.files:
+                if key.startswith('photo_'):
+                    tid = key[6:]
+                    photo_files[tid] = request.files[key]
+
+        new_id = create_inspection(data, photo_files)
         return jsonify({"success": True, "id": new_id}), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

@@ -106,24 +106,35 @@ def copy_templates(source_machine_id: int, target_machine_id: int) -> int:
 # 点检记录 CRUD
 # ================================================================
 
-def create_inspection(data: dict) -> int:
-    """提交点检记录"""
+def create_inspection(data: dict, photo_files: dict = None) -> int:
+    """提交点检记录（可选照片文件）"""
     if not data.get("machine_id"):
         raise ValueError("缺少字段: machine_id")
     if not data.get("operator_name"):
         raise ValueError("缺少字段: operator_name")
 
     details = data.get("details", [])
+    machine_id = data["machine_id"]
+
+    # 处理照片文件：按 template_id 匹配，保存到磁盘
+    if photo_files:
+        for detail in details:
+            tid = detail.get("template_id")
+            tid_str = str(tid) if tid is not None else ""
+            if tid_str in photo_files:
+                filename = save_inspection_photo(machine_id, photo_files[tid_str])
+                detail["photo"] = filename
+            detail.pop("template_id", None)
+
     details_json = json.dumps(details, ensure_ascii=False)
 
     db.execute_write(
         "INSERT INTO inspection_records (machine_id, operator_name, remark, details) "
         "VALUES (?, ?, ?, ?)",
-        (data["machine_id"], data["operator_name"], data.get("remark", ""), details_json),
+        (machine_id, data["operator_name"], data.get("remark", ""), details_json),
     )
     row = db.execute_one("SELECT last_insert_rowid() AS id")
     return row["id"]
-
 
 def list_inspections(
     machine_id: int | None = None,
