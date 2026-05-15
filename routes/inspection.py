@@ -1,11 +1,13 @@
 """点检模板与点检记录相关路由"""
-from flask import Blueprint, jsonify, request, make_response
+import os
+from flask import Blueprint, jsonify, request, make_response, send_from_directory
 from services.inspection_service import (
     get_templates, create_template, update_template,
     delete_template, copy_templates, import_templates,
     create_inspection, list_inspections,
     get_inspection_by_id, delete_inspection,
     check_today_inspected,
+    save_inspection_photo, get_inspection_photo_path,
 )
 import openpyxl
 from openpyxl.utils import get_column_letter
@@ -13,6 +15,8 @@ from io import BytesIO
 
 inspection_bp = Blueprint("inspection", __name__)
 
+
+# ---- 点检模板 ----
 
 @inspection_bp.route("/api/inspection-templates", methods=["GET"])
 def query_templates():
@@ -102,13 +106,14 @@ def import_template():
         return jsonify({"error": str(e)}), 500
 
 
+# ---- 点检记录 ----
+
 @inspection_bp.route("/api/inspection", methods=["POST"])
 def add_inspection():
     try:
         data = request.get_json(silent=True)
         if not data:
             return jsonify({"error": "请求体必须为 JSON"}), 400
-        # 检查今日是否已点检
         mid = data.get("machine_id")
         if mid and check_today_inspected(int(mid)):
             return jsonify({"error": "该设备今日已点检，不能重复提交。如需重新填写，请联系管理员删除今日记录后重试"}), 400
@@ -122,7 +127,6 @@ def add_inspection():
 
 @inspection_bp.route("/api/inspection", methods=["GET"])
 def query_inspections():
-    """GET /api/inspection?machine_id=&from=&to= — 查询点检记录"""
     try:
         machine_id = request.args.get("machine_id", type=int)
         date_from = request.args.get("from")
@@ -158,6 +162,39 @@ def remove_inspection(record_id):
         return jsonify({"error": str(e)}), 500
 
 
+# ---- 点检照片 ----
+
+@inspection_bp.route("/api/inspection/upload-photo", methods=["POST"])
+def upload_photo():
+    """上传点检照片"""
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "没有上传文件"}), 400
+        file = request.files["file"]
+        if file.filename == "":
+            return jsonify({"error": "未选择文件"}), 400
+        machine_id = request.form.get("machine_id", type=int)
+        if not machine_id:
+            return jsonify({"error": "缺少 machine_id"}), 400
+        filename = save_inspection_photo(machine_id, file)
+        return jsonify({"success": True, "filename": filename})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@inspection_bp.route("/api/inspection-photos/<filename>", methods=["GET"])
+def get_photo(filename):
+    """获取点检照片"""
+    path = get_inspection_photo_path(filename)
+    if not path:
+        return jsonify({"error": "照片不存在"}), 404
+    from config import UPLOAD_DIR
+    photo_dir = os.path.join(UPLOAD_DIR, "inspection_photos")
+    return send_from_directory(photo_dir, filename)
+
+
+# ---- 导出 Excel ----
+
 @inspection_bp.route("/api/inspection/export", methods=["GET"])
 def export_inspections():
     try:
@@ -166,7 +203,6 @@ def export_inspections():
         if not records:
             return jsonify({"error": "没有可导出的点检记录"}), 400
 
-        # 按机床分组
         grouped = {}
         for r in records:
             key = r.get("machine_code", "未知机床")
@@ -174,7 +210,6 @@ def export_inspections():
                 grouped[key] = []
             grouped[key].append(r)
 
-        # 创建 Excel
         wb = openpyxl.Workbook()
         wb.remove(wb.active)
 
@@ -182,22 +217,16 @@ def export_inspections():
             sheet_name = machine_code[:31]
             ws = wb.create_sheet(title=sheet_name)
 
-            # 收集所有点检项目名称
             all_items = []
             if recs[0].get("details"):
                 for d in recs[0]["details"]:
                     all_items.append(d.get("item_name", ""))
 
-            # 第一行：点检人
             ws.cell(row=1, column=1, value="点检人")
-            # 第二行：日期
             ws.cell(row=2, column=1, value="日期")
-
-            # 从第三行开始：点检项目
             for i, item_name in enumerate(all_items):
                 ws.cell(row=i + 3, column=1, value=item_name)
 
-            # 从第二列开始，每列是一次点检记录
             for col_idx, rec in enumerate(recs):
                 col = col_idx + 2
                 ws.cell(row=1, column=col, value=rec.get("operator_name", ""))
@@ -210,7 +239,6 @@ def export_inspections():
                         result = result + "（" + note + "）"
                     ws.cell(row=i + 3, column=col, value=result)
 
-            # 设置列宽
             ws.column_dimensions['A'].width = 45
             for ci in range(len(recs)):
                 ws.column_dimensions[get_column_letter(ci + 2)].width = 25

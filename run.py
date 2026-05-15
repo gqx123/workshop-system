@@ -54,6 +54,7 @@ def create_app():
             "/api/maintenance",
             "/api/faults",
             "/api/inspection",
+            "/api/inspection/upload-photo",
         ]
 
         if request.method == "GET":

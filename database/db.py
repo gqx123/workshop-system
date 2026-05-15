@@ -93,11 +93,16 @@ class Database:
         conn = self.get_connection()
         try:
             conn.executescript(SCHEMA)
-            # 迁移：machines 表加 instruction_image 字段（兼容旧数据库）
+            # 迁移：machines 表加 instruction_image 字段
             try:
                 conn.execute("ALTER TABLE machines ADD COLUMN instruction_image TEXT NOT NULL DEFAULT ''")
             except sqlite3.OperationalError:
-                pass  # 字段已存在
+                pass
+            # 迁移：inspection_templates 表加 requires_photo 字段
+            try:
+                conn.execute("ALTER TABLE inspection_templates ADD COLUMN requires_photo INTEGER NOT NULL DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
             conn.commit()
             logger.info("数据库表初始化完成")
         except sqlite3.Error as e:
@@ -105,6 +110,7 @@ class Database:
             raise DatabaseError(f"数据库初始化失败: {e}") from e
         finally:
             conn.close()
+
 
     def seed_machines(self):
         row = self.execute_one("SELECT value FROM system_config WHERE key = 'seed_done'")

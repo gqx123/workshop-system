@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS inspection_templates (
     machine_id      INTEGER NOT NULL,
     item_name       TEXT    NOT NULL,
     item_order      INTEGER NOT NULL DEFAULT 0,
+    requires_photo  INTEGER NOT NULL DEFAULT 0,
     created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (machine_id) REFERENCES machines(id)
 );

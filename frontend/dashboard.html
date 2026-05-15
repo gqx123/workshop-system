@@ -147,6 +147,18 @@
             color: var(--text-muted);
             margin-left: 10px;
         }
+
+        /* 点检照片 */
+        .insp-detail-item .detail-photo {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 
@@ -177,7 +189,7 @@
         </div>
     </div>
 
-        <!-- 作业指导书弹窗 -->
+    <!-- 作业指导书弹窗 -->
     <div class="modal-overlay" id="instrModal">
         <div class="modal" style="max-width:480px;">
             <div class="modal-header">
@@ -235,6 +247,10 @@
                 </div>
                 <div class="tpl-add-row">
                     <input type="text" class="form-input" id="tplNewName" placeholder="输入新的点检项目名称">
+                    <label
+                        style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);white-space:nowrap;cursor:pointer;">
+                        <input type="checkbox" id="tplNewRequirePhoto"> 需拍照
+                    </label>
                     <button class="btn btn-primary" id="tplAddBtn" style="white-space:nowrap;">+ 添加</button>
                 </div>
                 <div class="tpl-list" id="tplList">
@@ -453,7 +469,8 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width:36px;display:none;" id="machineThCheckbox"><input type="checkbox" id="machineSelectAll"></th>
+                                    <th style="width:36px;display:none;" id="machineThCheckbox"><input type="checkbox"
+                                            id="machineSelectAll"></th>
                                     <th>编号</th>
                                     <th>名称</th>
                                     <th>类型</th>

@@ -8,41 +8,45 @@
     <link rel="stylesheet" href="/frontend/css/variables.css">
     <link rel="stylesheet" href="/frontend/css/mobile.css">
     <style>
-        /* 点检项目行 */
-        .insp-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
+        /* ---- 点检卡片 ---- */
+        .insp-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             margin-bottom: 10px;
+            overflow: hidden;
         }
 
-        .insp-item .insp-index {
+        .insp-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+        }
+
+        .insp-card-header .insp-index {
             width: 26px;
             height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-muted);
             background: var(--bg);
             border-radius: 50%;
             flex-shrink: 0;
         }
 
-        .insp-item .insp-name {
+        .insp-card-header .insp-name {
             flex: 1;
             font-size: 15px;
             font-weight: 500;
             color: var(--text);
+            line-height: 1.4;
         }
 
-        /* 正常/异常切换开关 */
-        .insp-toggle {
+        .insp-card-header .insp-toggle {
             display: flex;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
@@ -50,7 +54,7 @@
             flex-shrink: 0;
         }
 
-        .insp-toggle button {
+        .insp-card-header .insp-toggle button {
             padding: 6px 14px;
             font-size: 13px;
             font-weight: 500;
@@ -61,28 +65,31 @@
             transition: background 0.15s, color 0.15s;
         }
 
-        .insp-toggle button:first-child {
+        .insp-card-header .insp-toggle button:first-child {
             border-right: 1px solid var(--border);
         }
 
-        .insp-toggle button.active-ok {
+        .insp-card-header .insp-toggle button.active-ok {
             background: var(--green-bg);
             color: var(--green);
             font-weight: 600;
         }
 
-        .insp-toggle button.active-bad {
+        .insp-card-header .insp-toggle button.active-bad {
             background: var(--red-bg);
             color: var(--red);
             font-weight: 600;
         }
 
-        /* 异常备注 */
-        .insp-note {
-            margin-top: 8px;
-            margin-left: 38px;
+        /* 卡片底部：备注 / 拍照 */
+        .insp-card-footer {
+            padding: 0 16px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
+        /* 备注 */
         .insp-note input {
             width: 100%;
             padding: 8px 10px;
@@ -98,7 +105,71 @@
             border-color: var(--red);
         }
 
-        /* 空状态 */
+        /* 拍照区域 */
+        .photo-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .photo-label {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .photo-upload-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px 0;
+            background: var(--primary-light);
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--primary);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .photo-upload-btn:active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .photo-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .photo-preview-row img {
+            width: 44px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--green);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .photo-preview-row .photo-ok {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--green);
+        }
+
+        .photo-preview-row .retake-btn {
+            font-size: 12px;
+            padding: 4px 10px;
+            white-space: nowrap;
+        }
+
         .insp-empty {
             text-align: center;
             padding: 48px 16px;
@@ -106,7 +177,7 @@
             font-size: 14px;
         }
 
-            /* ---- 历史记录全屏弹窗 ---- */
+        /* ---- 历史弹窗 ---- */
         .history-overlay {
             position: fixed;
             inset: 0;
@@ -149,7 +220,6 @@
         .history-overlay.open .history-sheet {
             transform: scale(1);
         }
-
 
         .history-sheet .hs-header {
             display: flex;
@@ -213,7 +283,6 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        /* 历史记录项 */
         .history-item {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -305,6 +374,17 @@
             margin-left: 10px;
         }
 
+        .history-item .hi-detail-photo {
+            width: 36px;
+            height: 36px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+
         .history-item .hi-remark {
             margin-top: 8px;
             padding: 8px 12px;
@@ -330,7 +410,6 @@
     </div>
 
     <div class="content safe-bottom">
-        <!-- 点检项目列表 -->
         <div id="inspList">
             <div class="loading" id="inspLoading">
                 <div class="loading-spinner"></div>
@@ -338,29 +417,25 @@
             </div>
         </div>
 
-        <!-- 点检人 + 备注 + 提交 -->
         <div id="inspForm" style="display:none;">
             <div class="form-group" style="margin-top:16px;">
                 <label class="form-label">点检人员 <span class="required">*</span></label>
                 <input type="text" class="form-input" id="operator_name" placeholder="姓名" required>
             </div>
-
             <div class="form-group">
                 <label class="form-label">备注</label>
                 <textarea class="form-textarea" id="remark" placeholder="补充说明（选填）" rows="3"></textarea>
             </div>
-
             <button type="button" class="btn btn-primary" id="submitBtn">提交点检记录</button>
         </div>
 
-        <!-- 查看历史按钮 -->
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
             <button type="button" class="btn btn-ghost" id="historyBtn"
                 style="width:100%;font-size:14px;">查看历史记录</button>
         </div>
     </div>
 
-    <!-- 历史记录全屏弹窗 -->
+    <!-- 历史记录弹窗 -->
     <div class="history-overlay" id="historyOverlay">
         <div class="history-backdrop" id="historyBackdrop"></div>
         <div class="history-sheet">
@@ -380,13 +455,8 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <script>
-        document.getElementById('backBtn').href =
-            '/mobile/?machine_id=' +
-            new URLSearchParams(window.location.search).get('machine_id');
-    </script>
-    <script src="/frontend/js/api.js"></script>
-    <script src="/frontend/js/mobile-inspection.js"></script>
+    <script src="/frontend/js/api.js?v=3"></script>
+    <script src="/frontend/js/mobile-inspection.js?v=3"></script>
 </body>
 
 </html>

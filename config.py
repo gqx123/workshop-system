@@ -27,6 +27,9 @@ ADMINS = {
 QR_DIR = os.path.join(BASE_DIR, "qrcodes")
 # 作业指导书上传目录
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+# 点检照片上传目录
+INSPECTION_PHOTO_DIR = os.path.join(UPLOAD_DIR, "inspection_photos")
+
 # 二维码中的基础URL（局域网IP，根据实际修改）
 BASE_URL = "http://192.168.13.99:5000"
 
