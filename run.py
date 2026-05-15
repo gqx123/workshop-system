@@ -142,7 +142,7 @@ if __name__ == "__main__":
         print(f"  ✓ 已配置外网地址（内网穿透），扫码可正常使用")
     elif lan_ip in BASE_URL:
         print(f"  ⚠️  当前 BASE_URL 是局域网地址，外网扫码无法访问")
-        print(f"     请将 config.py 中的 BASE_URL 改为花生壳外网地址")
+        print(f"     请将 config.py 中的 BASE_URL 对应地址")
         print(f"     然后重新生成二维码: py tools/generate_qrcodes.py")
     print("=" * 55)
     print()
